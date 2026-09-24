@@ -26,6 +26,7 @@ export interface Database {
           logo_url: string | null;
           address: string | null;
           phone: string | null;
+          slug: string | null;
           created_at: string;
         };
         Insert: {
@@ -34,6 +35,7 @@ export interface Database {
           logo_url?: string | null;
           address?: string | null;
           phone?: string | null;
+          slug?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["restaurants"]["Insert"]>;
@@ -51,6 +53,7 @@ export interface Database {
           default_view: DefaultView;
           deposit_policy: Json | null;
           notification_settings: Json | null;
+          web_max_party_size: number;
         };
         Insert: {
           id?: string;
@@ -63,6 +66,7 @@ export interface Database {
           default_view?: DefaultView;
           deposit_policy?: Json | null;
           notification_settings?: Json | null;
+          web_max_party_size?: number;
         };
         Update: Partial<Database["public"]["Tables"]["restaurant_settings"]["Insert"]>;
         Relationships: [
@@ -248,6 +252,20 @@ export interface Database {
       current_user_role: {
         Args: Record<string, never>;
         Returns: string;
+      };
+      public_booking_get_config: {
+        Args: { p_slug: string };
+        Returns: Json;
+      };
+      public_booking_create: {
+        Args: {
+          p_slug: string;
+          p_customer_name: string;
+          p_customer_phone: string;
+          p_party_size: number;
+          p_start_time: string;
+        };
+        Returns: Json;
       };
     };
     Enums: Record<string, never>;

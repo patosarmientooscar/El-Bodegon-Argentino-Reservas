@@ -15,6 +15,7 @@ export const DEFAULT_SETTINGS: Omit<RestaurantSettings, "id" | "restaurant_id"> 
   default_view: "list",
   deposit_policy: null,
   notification_settings: null,
+  web_max_party_size: 4,
 };
 
 /**
@@ -38,7 +39,7 @@ export const getDashboardContext = cache(async () => {
   const { data: profile } = await supabase
     .from("users")
     .select(
-      "id, name, role, restaurant_id, restaurants(id, name, logo_url, address, phone, created_at, restaurant_settings(*))",
+      "id, name, role, restaurant_id, restaurants(id, name, logo_url, address, phone, slug, created_at, restaurant_settings(*))",
     )
     .eq("id", user.id)
     .single();
