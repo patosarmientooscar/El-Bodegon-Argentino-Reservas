@@ -6,7 +6,8 @@ export const alt = "Reserva tu mesa";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-const GOLD = "#c8a24a";
+const GOLD = "#c8a84e";
+const INK = "#1a1a1a";
 const CREAM = "#f3ead8";
 const WOOD = "#5b3a22";
 const CHAIR = "#3a2415";
@@ -63,18 +64,18 @@ export default async function OpengraphImage({
           height: "100%",
           display: "flex",
           alignItems: "center",
-          background: "radial-gradient(circle at 78% 50%, #2a2014 0%, #0f0d0b 58%)",
+          background: "radial-gradient(circle at 76% 50%, #faf8f3 0%, #e8e6e1 60%)",
           padding: "0 80px",
           fontFamily: "serif",
         }}
       >
         <div style={{ display: "flex", flexDirection: "column", width: 640 }}>
-          <div style={{ fontSize: 26, letterSpacing: 8, color: GOLD, textTransform: "uppercase" }}>
+          <div style={{ fontSize: 26, letterSpacing: 8, color: "#86692a", textTransform: "uppercase" }}>
             Reserva tu mesa
           </div>
-          <div style={{ fontSize: 84, lineHeight: 1.05, color: CREAM, marginTop: 22, fontWeight: 700 }}>{name}</div>
+          <div style={{ fontSize: 84, lineHeight: 1.05, color: INK, marginTop: 22, fontWeight: 700 }}>{name}</div>
           <div style={{ width: 120, height: 3, background: GOLD, marginTop: 34 }} />
-          <div style={{ fontSize: 30, color: "rgba(243,234,216,0.7)", marginTop: 30 }}>
+          <div style={{ fontSize: 30, color: "rgba(26,26,26,0.62)", marginTop: 30 }}>
             En menos de 20 segundos · sin registro
           </div>
         </div>
@@ -92,7 +93,7 @@ export default async function OpengraphImage({
               height: 220,
               borderRadius: 30,
               background: `linear-gradient(135deg, #7a5232 0%, ${WOOD} 55%, #3e2716 100%)`,
-              boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
+              boxShadow: "0 24px 50px rgba(58,40,18,0.4)",
             }}
           />
           <Plate top={96} left={167} />

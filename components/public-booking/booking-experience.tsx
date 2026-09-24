@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { CircleAlert, LoaderCircle, Minus, Plus } from "lucide-react";
+import { useReducedMotion } from "motion/react";
 
 import { createBooking, type BookingField } from "@/app/r/[slug]/actions";
 import type { PublicRestaurant } from "@/lib/public-booking/data";
@@ -16,13 +15,8 @@ import { PublicHeader } from "./public-header";
 import { SuccessView, type ConfirmedBooking } from "./success-view";
 import { TableIllustration } from "./table-illustration";
 import { TimeSlots } from "./time-slots";
-import { ERROR_TEXT, FOCUS_RING, PRESSABLE, SECTION_LABEL } from "./ui";
 
 const DEFAULT_PARTY_SIZE = 2;
-
-const INPUT_CLASS = `h-[3.25rem] rounded-xl border bg-[#f3ead8]/[0.04] px-4 text-base text-[#f3ead8] placeholder:text-[#f3ead8]/35 transition-colors focus-visible:border-[#c8a24a] ${FOCUS_RING}`;
-
-const STEPPER_BUTTON = `flex size-14 items-center justify-center rounded-full border border-[#c8a24a]/60 text-[#c8a24a] hover:bg-[#c8a24a]/10 disabled:border-[#f3ead8]/10 disabled:text-[#f3ead8]/25 disabled:hover:bg-transparent ${PRESSABLE} ${FOCUS_RING}`;
 
 type FieldErrors = Partial<Record<BookingField, string>>;
 
@@ -55,6 +49,7 @@ export function BookingExperience({ restaurant, nowISO }: { restaurant: PublicRe
   const [isPending, startTransition] = useTransition();
 
   const slots = useMemo(() => (date ? buildSlots(rules, date, now) : []), [rules, date, now]);
+  const selectedDay = days.find((d) => d.date === date);
 
   function clearError(field: BookingField) {
     setFieldErrors((prev) => (prev[field] ? { ...prev, [field]: undefined } : prev));
@@ -91,16 +86,8 @@ export function BookingExperience({ restaurant, nowISO }: { restaurant: PublicRe
   }
 
   function focusField(field: BookingField) {
-    const target =
-      field === "name"
-        ? document.getElementById("pb-name")
-        : field === "phone"
-          ? document.getElementById("pb-phone")
-          : field === "date"
-            ? document.getElementById("pb-date-label")
-            : field === "time"
-              ? document.getElementById("pb-time-label")
-              : null;
+    const id = { name: "pb-name", phone: "pb-phone", date: "pb-date-label", time: "pb-time-label", partySize: "pb-party" }[field];
+    const target = document.getElementById(id);
     target?.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "center" });
     if (target instanceof HTMLInputElement) target.focus({ preventScroll: true });
   }
@@ -156,168 +143,136 @@ export function BookingExperience({ restaurant, nowISO }: { restaurant: PublicRe
     });
   }
 
-  const served = booking !== null;
-
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-5 pt-[max(2rem,env(safe-area-inset-top))] pb-[calc(env(safe-area-inset-bottom)+7.5rem)] md:pb-12">
-      <PublicHeader name={restaurant.name} />
+    <main className="rv">
+      {/* Escenario: marca + mesa + personas */}
+      <section className="rv-stage" aria-labelledby="rv-title">
+        <PublicHeader name={restaurant.name} />
+        <TableIllustration count={partySize} shakeSignal={shakeSignal} served={booking !== null} reduced={reduced} />
 
-      <div className="mx-auto mt-4 w-full max-w-[21rem]">
-        <TableIllustration count={partySize} shakeSignal={shakeSignal} served={served} reduced={reduced} />
-      </div>
-
-      <AnimatePresence mode="wait" initial={false}>
-        {booking ? (
-          <motion.div
-            key="success"
-            initial={reduced ? false : { opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={reduced ? { duration: 0 } : { duration: 0.45, ease: "easeOut", delay: 0.1 }}
-            className="mt-2"
-          >
-            <SuccessView slug={restaurant.slug} booking={booking} />
-          </motion.div>
-        ) : (
-          <motion.form
-            key="form"
-            noValidate
-            onSubmit={handleSubmit}
-            exit={reduced ? { opacity: 0, transition: { duration: 0 } } : { opacity: 0, y: -12, transition: { duration: 0.25 } }}
-            className="flex flex-col"
-          >
-            {/* Personas */}
-            <section aria-labelledby="pb-party-label" className="text-center">
-              <h2 id="pb-party-label" className="sr-only">
-                Personas
-              </h2>
-              <PartyCount count={partySize} direction={direction} reduced={reduced} />
-              <div className="mt-5 flex items-center justify-center gap-8">
-                <button
-                  type="button"
-                  onClick={decrement}
-                  disabled={partySize <= 1}
-                  aria-label="Quitar una persona"
-                  className={STEPPER_BUTTON}
-                >
-                  <Minus aria-hidden="true" className="size-5" />
-                </button>
-                <span className={SECTION_LABEL}>Personas</span>
-                <button type="button" onClick={increment} aria-label="Añadir una persona" className={STEPPER_BUTTON}>
-                  <Plus aria-hidden="true" className="size-5" />
-                </button>
-              </div>
-              <GroupNotice
-                open={groupNoticeOpen}
-                max={rules.maxPartySize}
-                telHref={restaurant.telHref}
-                whatsappHref={restaurant.whatsappHref}
-                reduced={reduced}
+        {!booking && (
+          <div className="rv-party" id="pb-party">
+            <PartyCount count={partySize} direction={direction} reduced={reduced} />
+            <div className="rv-stepper" role="group" aria-label="Personas">
+              <button
+                type="button"
+                className="rv-step rv-step-minus"
+                onClick={decrement}
+                disabled={partySize <= 1}
+                aria-label="Quitar una persona"
               />
-              {fieldErrors.partySize && <p className={`mt-2 ${ERROR_TEXT}`}>{fieldErrors.partySize}</p>}
-            </section>
-
-            <div className="mt-9">
-              <DateChips days={days} value={date} onChange={selectDate} />
-              {fieldErrors.date && <p className={`mt-2 ${ERROR_TEXT}`}>{fieldErrors.date}</p>}
+              <span className="rv-label">Personas</span>
+              <button type="button" className="rv-step rv-step-plus" onClick={increment} aria-label="Añadir una persona" />
             </div>
+            <GroupNotice
+              open={groupNoticeOpen}
+              max={rules.maxPartySize}
+              telHref={restaurant.telHref}
+              whatsappHref={restaurant.whatsappHref}
+            />
+            {fieldErrors.partySize && <p className="rv-error">{fieldErrors.partySize}</p>}
+          </div>
+        )}
+      </section>
 
-            <div className="mt-8">
-              <TimeSlots slots={slots} value={time} onChange={selectTime} error={fieldErrors.time} />
-            </div>
+      {/* Panel: formulario o éxito */}
+      <section className="rv-panel" aria-label="Datos de la reserva">
+        {booking ? (
+          <SuccessView slug={restaurant.slug} booking={booking} />
+        ) : (
+          <form noValidate onSubmit={handleSubmit}>
+            <DateChips days={days} value={date} onChange={selectDate} error={fieldErrors.date} />
+            <TimeSlots slots={slots} value={time} onChange={selectTime} error={fieldErrors.time} />
 
-            {/* Tus datos */}
-            <div className="mt-8 flex flex-col gap-5">
-              <div>
-                <label htmlFor="pb-name" className={SECTION_LABEL}>
-                  Nombre
-                </label>
-                <input
-                  id="pb-name"
-                  name="name"
-                  type="text"
-                  autoComplete="name"
-                  autoCapitalize="words"
-                  enterKeyHint="next"
-                  placeholder="¿A nombre de quién?"
-                  value={name}
-                  onChange={(e) => {
-                    setName(e.target.value);
-                    clearError("name");
-                  }}
-                  aria-invalid={Boolean(fieldErrors.name)}
-                  aria-describedby={fieldErrors.name ? "pb-name-error" : undefined}
-                  className={`mt-2 w-full ${INPUT_CLASS} ${fieldErrors.name ? "border-[#f0a08a]/70" : "border-[#f3ead8]/15"}`}
-                />
-                {fieldErrors.name && (
-                  <p id="pb-name-error" className={`mt-2 ${ERROR_TEXT}`}>
-                    {fieldErrors.name}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label htmlFor="pb-phone" className={SECTION_LABEL}>
-                  Teléfono
-                </label>
-                <div className="mt-2 flex gap-2">
-                  <input
-                    aria-label="Prefijo del país"
-                    type="tel"
-                    inputMode="tel"
-                    autoComplete="tel-country-code"
-                    value={phonePrefix}
-                    onChange={(e) => {
-                      setPhonePrefix(e.target.value);
-                      clearError("phone");
-                    }}
-                    className={`${INPUT_CLASS} w-[5.25rem] shrink-0 text-center ${fieldErrors.phone ? "border-[#f0a08a]/70" : "border-[#f3ead8]/15"}`}
-                  />
-                  <input
-                    id="pb-phone"
-                    name="phone"
-                    type="tel"
-                    inputMode="tel"
-                    autoComplete="tel-national"
-                    enterKeyHint="done"
-                    placeholder="612 345 678"
-                    value={phone}
-                    onChange={(e) => {
-                      setPhone(e.target.value);
-                      clearError("phone");
-                    }}
-                    aria-invalid={Boolean(fieldErrors.phone)}
-                    aria-describedby={fieldErrors.phone ? "pb-phone-error" : undefined}
-                    className={`${INPUT_CLASS} min-w-0 flex-1 ${fieldErrors.phone ? "border-[#f0a08a]/70" : "border-[#f3ead8]/15"}`}
-                  />
-                </div>
-                {fieldErrors.phone && (
-                  <p id="pb-phone-error" className={`mt-2 ${ERROR_TEXT}`}>
-                    {fieldErrors.phone}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div aria-live="assertive">
-              {formError && (
-                <p className="mt-6 flex items-start gap-2 rounded-xl border border-[#f0a08a]/30 bg-[#f0a08a]/[0.07] px-4 py-3 text-sm text-[#f6c3b5]">
-                  <CircleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-                  {formError}
+            <div className="rv-field">
+              <label htmlFor="pb-name" className="rv-label">
+                Nombre
+              </label>
+              <input
+                id="pb-name"
+                name="name"
+                className="rv-input"
+                type="text"
+                autoComplete="name"
+                autoCapitalize="words"
+                enterKeyHint="next"
+                placeholder="¿A nombre de quién?"
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  clearError("name");
+                }}
+                aria-invalid={Boolean(fieldErrors.name)}
+                aria-describedby={fieldErrors.name ? "pb-name-error" : undefined}
+              />
+              {fieldErrors.name && (
+                <p id="pb-name-error" className="rv-error">
+                  {fieldErrors.name}
                 </p>
               )}
             </div>
 
-            {/* Botón fijo abajo en móvil, en línea en escritorio */}
-            <div className="fixed inset-x-0 bottom-0 z-20 border-t border-[#f3ead8]/10 bg-[#0f0d0b]/90 px-5 pt-3 pb-[max(0.9rem,env(safe-area-inset-bottom))] backdrop-blur-md md:static md:mt-8 md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none">
-              <div className="mx-auto max-w-md">
-                <button
-                  type="submit"
-                  disabled={isPending}
-                  className={`flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#c8a24a] text-[1.05rem] font-semibold text-[#0f0d0b] shadow-[0_10px_30px_-10px_rgba(200,162,74,0.8)] hover:bg-[#d4b05a] disabled:opacity-80 ${PRESSABLE} ${FOCUS_RING}`}
-                >
+            <div className="rv-field">
+              <label htmlFor="pb-phone" className="rv-label">
+                Teléfono
+              </label>
+              <div className="rv-phone">
+                <input
+                  className="rv-input rv-prefix"
+                  aria-label="Prefijo del país"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel-country-code"
+                  value={phonePrefix}
+                  onChange={(e) => {
+                    setPhonePrefix(e.target.value);
+                    clearError("phone");
+                  }}
+                />
+                <input
+                  id="pb-phone"
+                  name="phone"
+                  className="rv-input"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel-national"
+                  enterKeyHint="done"
+                  placeholder="612 345 678"
+                  value={phone}
+                  onChange={(e) => {
+                    setPhone(e.target.value);
+                    clearError("phone");
+                  }}
+                  aria-invalid={Boolean(fieldErrors.phone)}
+                  aria-describedby={fieldErrors.phone ? "pb-phone-error" : undefined}
+                />
+              </div>
+              {fieldErrors.phone && (
+                <p id="pb-phone-error" className="rv-error">
+                  {fieldErrors.phone}
+                </p>
+              )}
+            </div>
+
+            <div aria-live="assertive">{formError && <p className="rv-alert">{formError}</p>}</div>
+
+            <div className="rv-bar">
+              <div className="rv-bar-inner">
+                <p className="rv-summary" aria-hidden="true">
+                  {selectedDay && (
+                    <b>
+                      {selectedDay.label} {selectedDay.dayNumber}
+                    </b>
+                  )}
+                  {selectedDay && " · "}
+                  {time ? <b>{time}</b> : "elige hora"}
+                  {" · "}
+                  {partySize} {partySize === 1 ? "persona" : "personas"}
+                </p>
+                <button type="submit" className="rv-cta" aria-busy={isPending}>
                   {isPending ? (
                     <>
-                      <LoaderCircle aria-hidden="true" className="size-5 animate-spin motion-reduce:animate-none" />
+                      <span className="rv-spinner" aria-hidden="true" />
                       Reservando…
                     </>
                   ) : (
@@ -326,9 +281,9 @@ export function BookingExperience({ restaurant, nowISO }: { restaurant: PublicRe
                 </button>
               </div>
             </div>
-          </motion.form>
+          </form>
         )}
-      </AnimatePresence>
+      </section>
     </main>
   );
 }

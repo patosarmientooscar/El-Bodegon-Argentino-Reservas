@@ -1,12 +1,27 @@
 import type { Viewport } from "next";
-import { Inter, Playfair_Display } from "next/font/google";
+import { Great_Vibes, Montserrat, Playfair_Display } from "next/font/google";
 
-const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-playfair", display: "swap" });
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
+import "./reservar.css";
+
+// Mismas fuentes que la web del restaurante.
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  weight: ["600", "700"],
+  style: ["normal", "italic"],
+  variable: "--font-playfair",
+  display: "swap",
+});
+const greatVibes = Great_Vibes({ subsets: ["latin"], weight: "400", variable: "--font-great-vibes", display: "swap" });
+const montserrat = Montserrat({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-montserrat",
+  display: "swap",
+});
 
 export const viewport: Viewport = {
-  themeColor: "#0f0d0b",
-  colorScheme: "dark",
+  themeColor: "#e8e6e1",
+  colorScheme: "light",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -14,12 +29,10 @@ export const viewport: Viewport = {
 
 export default function PublicBookingLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div
-      className={`${playfair.variable} ${inter.variable} min-h-dvh bg-[#0f0d0b] font-[family-name:var(--font-inter)] text-[#f3ead8] antialiased`}
-    >
-      {/* El body global es claro (panel): en esta página pública lo igualamos
-          al fondo para que el rebote de scroll en iOS no muestre blanco. */}
-      <style>{`html,body{background:#0f0d0b}`}</style>
+    <div className={`rv-root ${playfair.variable} ${greatVibes.variable} ${montserrat.variable}`}>
+      {/* El body global es el del panel: aquí lo igualamos al lienzo para
+          que el rebote de scroll en iOS no muestre otro color. */}
+      <style>{`html,body{background:#e8e6e1}`}</style>
       {children}
     </div>
   );

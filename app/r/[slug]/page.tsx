@@ -51,11 +51,16 @@ export default async function PublicBookingPage({ params }: Props) {
 
   if (result.status === "error") {
     return (
-      <main className="mx-auto flex min-h-dvh max-w-md flex-col px-5 pt-10">
-        <PublicHeader name="Reservas" />
-        <p className="mt-10 text-center text-base text-[#f3ead8]/75">
-          Las reservas online no están disponibles ahora mismo. Vuelve a intentarlo en unos minutos.
-        </p>
+      <main className="rv">
+        <section className="rv-stage">
+          <PublicHeader name="El Bodegón Argentino" />
+        </section>
+        <section className="rv-panel rv-unavailable">
+          <p className="rv-success-title">Reservas no disponibles</p>
+          <p className="rv-success-text">
+            Las reservas online no están disponibles ahora mismo. Vuelve a intentarlo en unos minutos.
+          </p>
+        </section>
       </main>
     );
   }
