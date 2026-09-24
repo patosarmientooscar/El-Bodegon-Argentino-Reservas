@@ -43,7 +43,10 @@ export function TimeSlots({
                   className="rv-choice rv-slot"
                   disabled={!slot.available}
                   aria-pressed={slot.time === value}
-                  aria-label={slot.available ? slot.time : `${slot.time}, no disponible`}
+                  aria-label={
+                    slot.available ? slot.time : `${slot.time}, ${slot.reason === "full" ? "completo" : "no disponible"}`
+                  }
+                  title={slot.reason === "full" ? "Completo" : undefined}
                   onClick={() => onChange(slot.time)}
                 >
                   {slot.time}

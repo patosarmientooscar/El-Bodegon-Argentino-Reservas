@@ -26,12 +26,13 @@ export function DateChips({
             className="rv-choice rv-day"
             disabled={day.disabled}
             aria-pressed={day.date === value}
-            aria-label={`${day.fullLabel}${day.reason === "closed" ? ", cerrado" : day.reason === "full" ? ", sin horas libres" : ""}`}
+            aria-label={`${day.fullLabel}${day.reason === "closed" ? ", cerrado" : day.reason === "full" ? ", completo" : day.reason === "past" ? ", sin horas libres" : ""}`}
             onClick={() => onChange(day.date)}
           >
             <span className="rv-day-week">{day.label}</span>
             <span className="rv-day-num">{day.dayNumber}</span>
             {day.reason === "closed" && <span className="rv-day-note">Cerrado</span>}
+            {day.reason === "full" && <span className="rv-day-note">Completo</span>}
           </button>
         ))}
       </div>

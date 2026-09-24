@@ -1,13 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
 import { hasTableOverlap } from "@/lib/reservations/overlap";
 import type { ReservationRow, TableRow } from "@/lib/reservations/status";
 
-const PX_PER_MINUTE = 1.6;
+const MIN_PX_PER_MINUTE = 1.6;
 const SNAP_MINUTES = 15;
 const ROW_HEIGHT = 44;
 const LABEL_WIDTH = 88;
@@ -51,7 +51,21 @@ export function ReservationsGrid({
   onMove: (reservationId: string, tableId: string, newStartIso: string) => Promise<void>;
 }) {
   const [draggingId, setDraggingId] = useState<string | null>(null);
-  const totalWidth = (windowEnd - windowStart) * PX_PER_MINUTE;
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(([entry]) => setContainerWidth(entry.contentRect.width));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // Estira la rejilla a todo el ancho disponible; si el turno no cabe, hace scroll.
+  const windowMinutes = Math.max(windowEnd - windowStart, 1);
+  const PX_PER_MINUTE = Math.max(MIN_PX_PER_MINUTE, (containerWidth - LABEL_WIDTH) / windowMinutes);
+  const totalWidth = windowMinutes * PX_PER_MINUTE;
 
   const ticks = useMemo(() => {
     const result: number[] = [];
@@ -129,7 +143,7 @@ export function ReservationsGrid({
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border">
+    <div ref={containerRef} className="overflow-x-auto rounded-lg border">
       <div style={{ width: totalWidth + LABEL_WIDTH }}>
         {/* Cabecera de horas */}
         <div className="sticky top-0 z-10 flex border-b bg-card" style={{ height: 32 }}>

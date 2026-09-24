@@ -38,10 +38,10 @@ export function hasTableOverlap(
 }
 
 /**
- * Mejor mesa libre para una reserva nueva: capacidad exacta al tamaño del
- * grupo — nunca una mesa más grande — libre en ese horario y no bloqueada.
- * Null si no hay ninguna con esa capacidad exacta libre; la reserva se
- * guarda entonces sin mesa y en pendiente, para que el staff decida a mano.
+ * Mejor mesa libre para una reserva nueva: la más pequeña donde quepa el
+ * grupo (capacidad ≥ personas; a igual capacidad, la de número más bajo),
+ * libre en ese horario y no bloqueada. Misma regla que el trigger
+ * `reservations_auto_assign_table` de la BD. Null si ninguna cabe.
  */
 export function pickBestAvailableTable(
   tables: TableRow[],
@@ -51,9 +51,9 @@ export function pickBestAvailableTable(
   durationMinutes: number,
 ): TableRow | null {
   const candidates = tables
-    .filter((t) => t.status_override !== "blocked" && t.capacity === partySize)
+    .filter((t) => t.status_override !== "blocked" && t.capacity >= partySize)
     .filter((t) => !hasTableOverlap({ table_id: t.id, start_time: startTime, duration_minutes: durationMinutes }, existing))
-    .sort((a, b) => a.number - b.number);
+    .sort((a, b) => a.capacity - b.capacity || a.number - b.number);
 
   return candidates[0] ?? null;
 }

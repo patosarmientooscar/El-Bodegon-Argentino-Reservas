@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 
 import { BookingExperience } from "@/components/public-booking/booking-experience";
 import { PublicHeader } from "@/components/public-booking/public-header";
-import { getPublicRestaurant } from "@/lib/public-booking/data";
+import { getOccupancy, getPublicRestaurant } from "@/lib/public-booking/data";
 
 // Las franjas dependen de la hora actual: siempre render en cada petición.
 export const dynamic = "force-dynamic";
@@ -65,5 +65,8 @@ export default async function PublicBookingPage({ params }: Props) {
     );
   }
 
-  return <BookingExperience restaurant={result.restaurant} nowISO={new Date().toISOString()} />;
+  const now = new Date();
+  const occupancy = await getOccupancy(slug, result.restaurant.rules, now);
+
+  return <BookingExperience restaurant={result.restaurant} nowISO={now.toISOString()} initialOccupancy={occupancy} />;
 }

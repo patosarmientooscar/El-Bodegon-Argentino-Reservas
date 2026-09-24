@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { List, LayoutGrid, Plus } from "lucide-react";
+import { ChevronDown, List, LayoutGrid, Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,7 +15,7 @@ import { ReservationFormDialog } from "@/components/dashboard/reservation-form-d
 import { useRealtimeReservations } from "@/hooks/use-realtime-reservations";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
-import { getTurnoWindow, classifyTurno, type ServiceHourRow } from "@/lib/reservations/service-hours";
+import { getTurnoWindow, classifyTurno, type ServiceHourRow, type Turno } from "@/lib/reservations/service-hours";
 import type { ReservationRow, TableRow } from "@/lib/reservations/status";
 import type { DefaultView } from "@/types/database.types";
 
@@ -107,6 +107,23 @@ export function ReservationsClient({
     [serviceHours, dayOfWeek, reservations],
   );
 
+  // Turno desplegado: el que toca según la hora (hoy) — comida hasta que cierra, luego cena.
+  // El otro queda plegado y se puede abrir a mano.
+  const [openTurnos, setOpenTurnos] = useState<Turno[]>(["lunch"]);
+  const lunchEnd = lunchWindow?.endMinutes ?? null;
+  const hasDinner = dinnerWindow !== null;
+  useEffect(() => {
+    const now = new Date();
+    const todayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    const lunchOver = lunchEnd === null || (selectedDateIso === todayIso && nowMinutes >= lunchEnd);
+    setOpenTurnos([lunchOver && hasDinner ? "dinner" : "lunch"]);
+  }, [selectedDateIso, lunchEnd, hasDinner]);
+
+  function toggleTurno(turno: Turno) {
+    setOpenTurnos((prev) => (prev.includes(turno) ? prev.filter((t) => t !== turno) : [...prev, turno]));
+  }
+
   const selectedReservation = reservations.find((r) => r.id === selectedId) ?? null;
 
   async function handleMove(reservationId: string, tableId: string, newStartIso: string) {
@@ -166,43 +183,48 @@ export function ReservationsClient({
         <ReservationsList reservations={sorted} tables={tables} onSelect={setSelectedId} />
       ) : (
         <div className="flex flex-col gap-4">
-          <section className="flex flex-col gap-2">
-            <h2 className="text-sm font-semibold text-muted-foreground">Comida</h2>
-            {lunchWindow ? (
-              <ReservationsGrid
-                tables={tables}
-                reservations={lunchReservations}
-                windowStart={lunchWindow.startMinutes}
-                windowEnd={lunchWindow.endMinutes}
-                selectedDateIso={selectedDateIso}
-                onSelect={setSelectedId}
-                onMove={handleMove}
-              />
-            ) : (
-              <p className="rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
-                Cerrado este día.
-              </p>
-            )}
-          </section>
-
-          <section className="flex flex-col gap-2">
-            <h2 className="text-sm font-semibold text-muted-foreground">Cena</h2>
-            {dinnerWindow ? (
-              <ReservationsGrid
-                tables={tables}
-                reservations={dinnerReservations}
-                windowStart={dinnerWindow.startMinutes}
-                windowEnd={dinnerWindow.endMinutes}
-                selectedDateIso={selectedDateIso}
-                onSelect={setSelectedId}
-                onMove={handleMove}
-              />
-            ) : (
-              <p className="rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
-                Cerrado este día.
-              </p>
-            )}
-          </section>
+          {(
+            [
+              { turno: "lunch", label: "Comida", window: lunchWindow, rows: lunchReservations },
+              { turno: "dinner", label: "Cena", window: dinnerWindow, rows: dinnerReservations },
+            ] as const
+          ).map(({ turno, label, window: turnoWindow, rows }) => {
+            const isOpen = openTurnos.includes(turno);
+            return (
+              <section key={turno} className="flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={() => toggleTurno(turno)}
+                  aria-expanded={isOpen}
+                  className="flex items-center gap-1.5 self-start text-sm font-semibold text-muted-foreground hover:text-foreground"
+                >
+                  <ChevronDown className={`size-4 transition-transform ${isOpen ? "" : "-rotate-90"}`} />
+                  {label}
+                  {turnoWindow && (
+                    <span className="font-normal tabular-nums">
+                      · {rows.length} {rows.length === 1 ? "reserva" : "reservas"}
+                    </span>
+                  )}
+                </button>
+                {isOpen &&
+                  (turnoWindow ? (
+                    <ReservationsGrid
+                      tables={tables}
+                      reservations={rows}
+                      windowStart={turnoWindow.startMinutes}
+                      windowEnd={turnoWindow.endMinutes}
+                      selectedDateIso={selectedDateIso}
+                      onSelect={setSelectedId}
+                      onMove={handleMove}
+                    />
+                  ) : (
+                    <p className="rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
+                      Cerrado este día.
+                    </p>
+                  ))}
+              </section>
+            );
+          })}
         </div>
       )}
 

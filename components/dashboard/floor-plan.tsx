@@ -10,6 +10,16 @@ import {
 } from "@/components/ui/popover";
 import { computeAllTableStatuses, type ReservationRow, type TableRow } from "@/lib/reservations/status";
 import { formatTime } from "@/lib/reservations/date";
+import type { TableShape as TableShapeKind } from "@/types/database.types";
+
+const SHAPE_ORDER: TableShapeKind[] = ["round", "square", "rectangular"];
+
+/** Etiqueta encima de cada grupo: redondas = altas (3), cuadradas = para 2, rectangulares = para 4. */
+function groupLabel(shape: TableShapeKind, group: TableRow[]): string {
+  const capacities = [...new Set(group.map((t) => t.capacity))].sort((a, b) => a - b);
+  const people = `${capacities.join(" y ")} pers.`;
+  return shape === "round" ? `Mesas altas · ${people}` : `Mesas para ${people}`;
+}
 
 function minutesUntil(iso: string, now: Date): number {
   return Math.max(0, Math.round((new Date(iso).getTime() - now.getTime()) / 60_000));
@@ -41,6 +51,21 @@ export function FloorPlanCanvas({
   return (
     <div className="relative aspect-4/3 w-full overflow-hidden rounded-lg border bg-muted/30 sm:aspect-16/9">
       <div className="pointer-events-none absolute inset-y-0 left-[63%] w-px bg-border" aria-hidden />
+      {SHAPE_ORDER.map((shape) => {
+        const group = tables.filter((t) => t.shape === shape);
+        if (group.length === 0) return null;
+        const xs = group.map((t) => t.pos_x);
+        const top = Math.min(...group.map((t) => t.pos_y));
+        return (
+          <span
+            key={shape}
+            className="pointer-events-none absolute -translate-x-1/2 whitespace-nowrap text-xs font-medium text-muted-foreground"
+            style={{ left: `${(Math.min(...xs) + Math.max(...xs)) / 2}%`, top: `calc(${top}% - 3rem)` }}
+          >
+            {groupLabel(shape, group)}
+          </span>
+        );
+      })}
       {tables.map((table) => {
         const result = statuses.get(table.id)!;
         return (

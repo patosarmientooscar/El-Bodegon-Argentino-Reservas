@@ -125,9 +125,6 @@ export function ReservationFormDialog({
       finalTableId = best?.id ?? null;
       status = best ? "confirmed" : "pending";
       autoAssignFailed = !best;
-    } else if (tableId === "none") {
-      finalTableId = null;
-      status = "pending";
     } else {
       finalTableId = tableId;
       status = "confirmed";
@@ -157,7 +154,7 @@ export function ReservationFormDialog({
     }
 
     if (autoAssignFailed) {
-      toast.warning("Reserva guardada como pendiente — no hay mesa libre de esa capacidad a esa hora.");
+      toast.warning("Reserva guardada como pendiente — no hay ninguna mesa libre donde quepa el grupo a esa hora.");
     } else {
       toast.success("Reserva guardada.");
     }
@@ -228,7 +225,6 @@ export function ReservationFormDialog({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="auto">Automática (recomendado)</SelectItem>
-                  <SelectItem value="none">Sin asignar</SelectItem>
                   {tables.map((t) => (
                     <SelectItem key={t.id} value={t.id}>
                       Mesa {t.number} ({t.capacity}p)
@@ -238,7 +234,7 @@ export function ReservationFormDialog({
               </Select>
               {tableId === "auto" && (
                 <p className="text-xs text-muted-foreground">
-                  Busca una mesa de {partySize} exactas libre a esa hora. Si no hay, queda pendiente.
+                  Asigna la mesa libre más pequeña donde quepan {partySize}. Si no hay, queda pendiente.
                 </p>
               )}
             </div>

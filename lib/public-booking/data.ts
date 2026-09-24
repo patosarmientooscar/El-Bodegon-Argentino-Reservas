@@ -10,9 +10,11 @@ import { z } from "zod";
 
 import type { Database } from "@/types/database.types";
 
+import type { Occupancy } from "./availability";
 import { getPublicBookingConfig } from "./config";
 import { toTelHref } from "./phone";
 import type { BookingRules, ServiceWindow } from "./schedule";
+import { addDays, zonedToUtc, zonedToday } from "./time";
 
 const configSchema = z.object({
   name: z.string(),
@@ -119,6 +121,7 @@ export const getPublicRestaurant = cache(async (slug: string): Promise<PublicRes
         maxAdvanceDays: db.settings.max_advance_days,
         maxPartySize: db.settings.web_max_party_size,
         daysShown: config.daysShown,
+        durationMinutes: db.settings.duration_minutes,
         weeklyHours,
         closedDates: db.closed_dates,
       },
@@ -149,4 +152,40 @@ export async function createPublicReservation(args: {
     .safeParse(data);
   if (!result.success) return { ok: false, code: "db_error" };
   return "id" in result.data ? { ok: true, id: result.data.id } : { ok: false, code: result.data.error };
+}
+
+const occupancySchema = z.object({
+  tables: z.array(z.object({ id: z.string(), number: z.number(), capacity: z.number() })),
+  busy: z.array(
+    z.object({
+      table_id: z.string().nullable(),
+      party_size: z.number(),
+      start_time: z.string(),
+      duration_minutes: z.number(),
+    }),
+  ),
+});
+
+/**
+ * Mesas y horas ocupadas en los días que enseña la página (sin datos de
+ * clientes). null si no se puede leer: la página sigue funcionando solo con
+ * el horario y la BD vuelve a comprobar las mesas al guardar.
+ */
+export async function getOccupancy(slug: string, rules: BookingRules, now: Date): Promise<Occupancy | null> {
+  const today = zonedToday(rules.timeZone, now);
+  const from = zonedToUtc(rules.timeZone, today, "00:00");
+  const to = zonedToUtc(rules.timeZone, addDays(today, rules.daysShown + 1), "00:00");
+
+  const { data, error } = await anonClient().rpc("public_booking_occupancy", {
+    p_slug: slug,
+    p_from: from.toISOString(),
+    p_to: to.toISOString(),
+  });
+  if (error) {
+    // PGRST202 = falta pegar PEGAR_DISPONIBILIDAD.sql
+    console.error("[reserva pública] public_booking_occupancy:", error.code, error.message);
+    return null;
+  }
+  const parsed = occupancySchema.safeParse(data);
+  return parsed.success ? parsed.data : null;
 }

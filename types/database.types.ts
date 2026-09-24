@@ -257,6 +257,10 @@ export interface Database {
         Args: { p_slug: string };
         Returns: Json;
       };
+      public_booking_occupancy: {
+        Args: { p_slug: string; p_from: string; p_to: string };
+        Returns: Json;
+      };
       public_booking_create: {
         Args: {
           p_slug: string;

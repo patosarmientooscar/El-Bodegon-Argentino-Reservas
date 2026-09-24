@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Abrir Reservas (localhost)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: system-ui, sans-serif; background: #111; color: #eee; display: grid; place-items: center; min-height: 100vh; margin: 0; padding: 16px; box-sizing: border-box; }
+    main { max-width: 420px; width: 100%; }
+    h1 { font-size: 1.25rem; margin: 0 0 1rem; }
+    a { display: block; padding: .75rem 1rem; margin-bottom: .5rem; background: #222; color: #eee; text-decoration: none; border-radius: 8px; }
+    a:hover { background: #333; }
+    form { display: flex; gap: .5rem; margin-top: 1rem; }
+    input { flex: 1; padding: .6rem; border-radius: 8px; border: 1px solid #444; background: #1a1a1a; color: #eee; }
+    button { padding: .6rem 1rem; border-radius: 8px; border: 0; background: #eee; color: #111; cursor: pointer; }
+    p { font-size: .8rem; color: #999; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Reservas — localhost:3000</h1>
+    <a href="http://localhost:3000/">Inicio</a>
+    <a href="http://localhost:3000/login">Login</a>
+    <a href="http://localhost:3000/home">Home (dashboard)</a>
+    <a href="http://localhost:3000/reservations">Reservations</a>
+    <a href="http://localhost:3000/settings">Settings</a>
+    <form onsubmit="event.preventDefault(); var s=document.getElementById('slug').value.trim(); if(s) location.href='http://localhost:3000/r/'+encodeURIComponent(s);">
+      <input id="slug" placeholder="slug de reserva pública">
+      <button>Abrir /r/</button>
+    </form>
+    <p>Requiere que el servidor esté corriendo (<code>npm run dev</code>).</p>
+  </main>
+</body>
+</html>

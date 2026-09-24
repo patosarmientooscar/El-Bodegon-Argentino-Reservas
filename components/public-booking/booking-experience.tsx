@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useReducedMotion } from "motion/react";
 
-import { createBooking, type BookingField } from "@/app/r/[slug]/actions";
+import { createBooking, refreshAvailability, type BookingField } from "@/app/r/[slug]/actions";
+import type { Occupancy } from "@/lib/public-booking/availability";
 import type { PublicRestaurant } from "@/lib/public-booking/data";
 import { DEFAULT_PHONE_PREFIX, normalizePhone, validateName } from "@/lib/public-booking/phone";
 import { buildDayOptions, buildSlots } from "@/lib/public-booking/schedule";
@@ -20,21 +21,39 @@ const DEFAULT_PARTY_SIZE = 2;
 
 type FieldErrors = Partial<Record<BookingField, string>>;
 
-export function BookingExperience({ restaurant, nowISO }: { restaurant: PublicRestaurant; nowISO: string }) {
+export function BookingExperience({
+  restaurant,
+  nowISO,
+  initialOccupancy,
+}: {
+  restaurant: PublicRestaurant;
+  nowISO: string;
+  initialOccupancy: Occupancy | null;
+}) {
   const { rules } = restaurant;
   const reduced = useReducedMotion() ?? false;
 
   // "Ahora" viene del servidor para que el primer render coincida; luego se
   // refresca cada minuto para ir deshabilitando las franjas que pasan.
+  // La ocupación de mesas también se refresca: si otra persona reserva,
+  // esa hora desaparece sin recargar.
   const [now, setNow] = useState(() => new Date(nowISO));
+  const [occupancy, setOccupancy] = useState<Occupancy | null>(initialOccupancy);
   useEffect(() => {
-    const id = window.setInterval(() => setNow(new Date()), 60_000);
+    const id = window.setInterval(() => {
+      setNow(new Date());
+      refreshAvailability(restaurant.slug)
+        .then((fresh) => {
+          if (fresh) setOccupancy(fresh);
+        })
+        .catch(() => {});
+    }, 60_000);
     return () => window.clearInterval(id);
-  }, []);
-
-  const days = useMemo(() => buildDayOptions(rules, now), [rules, now]);
+  }, [restaurant.slug]);
 
   const [partySize, setPartySize] = useState(Math.min(DEFAULT_PARTY_SIZE, rules.maxPartySize));
+  const ctx = useMemo(() => ({ occupancy, partySize }), [occupancy, partySize]);
+  const days = useMemo(() => buildDayOptions(rules, now, ctx), [rules, now, ctx]);
   const [direction, setDirection] = useState<1 | -1>(1);
   const [shakeSignal, setShakeSignal] = useState(0);
   const [groupNoticeOpen, setGroupNoticeOpen] = useState(false);
@@ -48,11 +67,26 @@ export function BookingExperience({ restaurant, nowISO }: { restaurant: PublicRe
   const [booking, setBooking] = useState<ConfirmedBooking | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const slots = useMemo(() => (date ? buildSlots(rules, date, now) : []), [rules, date, now]);
+  const slots = useMemo(() => (date ? buildSlots(rules, date, now, ctx) : []), [rules, date, now, ctx]);
   const selectedDay = days.find((d) => d.date === date);
 
   function clearError(field: BookingField) {
     setFieldErrors((prev) => (prev[field] ? { ...prev, [field]: undefined } : prev));
+  }
+
+  /** Al cambiar de grupo, la hora elegida puede quedarse sin mesa. */
+  function keepTimeIfFits(nextParty: number) {
+    if (!date || !time) return;
+    const fits = buildSlots(rules, date, now, { occupancy, partySize: nextParty }).some(
+      (s) => s.time === time && s.available,
+    );
+    if (!fits) {
+      setTime(null);
+      setFieldErrors((prev) => ({
+        ...prev,
+        time: `A las ${time} no queda mesa para ${nextParty}. Elige otra hora.`,
+      }));
+    }
   }
 
   function increment() {
@@ -64,6 +98,7 @@ export function BookingExperience({ restaurant, nowISO }: { restaurant: PublicRe
     setDirection(1);
     setPartySize(partySize + 1);
     clearError("partySize");
+    keepTimeIfFits(partySize + 1);
   }
 
   function decrement() {
@@ -71,13 +106,14 @@ export function BookingExperience({ restaurant, nowISO }: { restaurant: PublicRe
     setDirection(-1);
     setPartySize(partySize - 1);
     setGroupNoticeOpen(false);
+    keepTimeIfFits(partySize - 1);
   }
 
   function selectDate(next: string) {
     setDate(next);
     clearError("date");
     // Si la misma hora existe ese día, se mantiene: un toque menos.
-    if (time && !buildSlots(rules, next, now).some((s) => s.time === time && s.available)) setTime(null);
+    if (time && !buildSlots(rules, next, now, ctx).some((s) => s.time === time && s.available)) setTime(null);
   }
 
   function selectTime(next: string) {
@@ -129,6 +165,7 @@ export function BookingExperience({ restaurant, nowISO }: { restaurant: PublicRe
           return;
         }
         setFormError(result.message);
+        if (result.occupancy) setOccupancy(result.occupancy);
         if (result.fieldErrors) {
           setFieldErrors(result.fieldErrors);
           if (result.fieldErrors.time) {
