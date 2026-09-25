@@ -22,6 +22,22 @@ function groupLabel(shape: TableShapeKind, group: TableRow[]): { long: string; s
     : { long: `Mesas para ${capacities} pers.`, short: `Para ${capacities}` };
 }
 
+// Margen lateral (en %) que queda libre a cada lado del plano.
+const FIT_MARGIN_X = 12;
+
+/**
+ * Estira horizontalmente las posiciones guardadas para que las mesas ocupen
+ * todo el ancho del plano, sin franja vacía a un lado. Solo afecta al dibujo
+ * de Home: las posiciones de Ajustes → Mesas no cambian. La altura se respeta.
+ */
+function fitX(tables: TableRow[]): (x: number) => number {
+  const xs = tables.map((t) => t.pos_x);
+  const min = Math.min(...xs);
+  const max = Math.max(...xs);
+  if (max === min) return () => 50;
+  return (x) => FIT_MARGIN_X + ((x - min) / (max - min)) * (100 - 2 * FIT_MARGIN_X);
+}
+
 function minutesUntil(iso: string, now: Date): number {
   return Math.max(0, Math.round((new Date(iso).getTime() - now.getTime()) / 60_000));
 }
@@ -49,13 +65,14 @@ export function FloorPlanCanvas({
     );
   }
 
+  const toX = fitX(tables);
+
   return (
     <div className="relative aspect-square w-full overflow-hidden rounded-lg border bg-muted/30 [--label-gap:1.75rem] sm:aspect-16/9 sm:[--label-gap:3rem]">
-      <div className="pointer-events-none absolute inset-y-0 left-[63%] w-px bg-border" aria-hidden />
       {SHAPE_ORDER.map((shape) => {
         const group = tables.filter((t) => t.shape === shape);
         if (group.length === 0) return null;
-        const xs = group.map((t) => t.pos_x);
+        const xs = group.map((t) => toX(t.pos_x));
         const top = Math.min(...group.map((t) => t.pos_y));
         const center = (Math.min(...xs) + Math.max(...xs)) / 2;
         const label = groupLabel(shape, group);
@@ -83,7 +100,7 @@ export function FloorPlanCanvas({
               <button
                 type="button"
                 className="absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer"
-                style={{ left: `${table.pos_x}%`, top: `${table.pos_y}%` }}
+                style={{ left: `${toX(table.pos_x)}%`, top: `${table.pos_y}%` }}
               >
                 <TableShape
                   number={table.number}
