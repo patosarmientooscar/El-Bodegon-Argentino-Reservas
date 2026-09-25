@@ -21,30 +21,34 @@ export function NextArrivals({
     .slice(0, 5);
 
   return (
-    <Card className="gap-3 py-4">
-      <CardHeader className="px-4">
+    <Card className="gap-2 py-3 sm:gap-3 sm:py-4">
+      <CardHeader className="px-3 sm:px-4">
         <CardTitle className="text-sm font-semibold">Próximas llegadas</CardTitle>
       </CardHeader>
-      <CardContent className="px-4">
+      <CardContent className="px-3 sm:px-4">
         {upcoming.length === 0 ? (
           <p className="text-sm text-muted-foreground">Sin más llegadas previstas hoy.</p>
         ) : (
           <ul className="divide-y">
             {upcoming.map((reservation) => (
               <li key={reservation.id}>
+                {/* En móvil la columna es estrecha: hora + nombre arriba, personas y mesa debajo. */}
                 <Link
-                  href={`/reservations?id=${reservation.id}`}
-                  className="flex items-center gap-3 py-2 text-sm hover:bg-accent/50 -mx-1 px-1 rounded"
+                  href={`/home?id=${reservation.id}`}
+                  scroll={false}
+                  className="-mx-1 grid grid-cols-[auto_minmax(0,1fr)] gap-x-2 rounded px-1 py-2 text-sm hover:bg-accent/50 sm:flex sm:items-center sm:gap-3"
                 >
-                  <span className="w-12 shrink-0 font-medium tabular-nums">
+                  <span className="font-medium tabular-nums sm:w-12 sm:shrink-0">
                     {formatTime(reservation.start_time)}
                   </span>
-                  <span className="flex-1 truncate">{reservation.customer_name}</span>
-                  <span className="shrink-0 text-muted-foreground">
+                  <span className="truncate sm:flex-1">{reservation.customer_name}</span>
+                  <span className="col-span-2 text-xs text-muted-foreground sm:shrink-0 sm:text-sm">
                     {reservation.party_size}p
                     {reservation.table_id ? ` · M${tableByNumber.get(reservation.table_id) ?? "—"}` : " · sin mesa"}
                   </span>
-                  <SourceIcon source={reservation.source} />
+                  <span className="hidden sm:inline-flex">
+                    <SourceIcon source={reservation.source} />
+                  </span>
                 </Link>
               </li>
             ))}

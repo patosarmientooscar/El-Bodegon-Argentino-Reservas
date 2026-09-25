@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 import { createClient } from "@/lib/supabase/client";
 import type { ReservationRow } from "@/lib/reservations/status";
@@ -31,6 +31,9 @@ export function useRealtimeReservations({
   const isInRangeRef = useRef(isInRange);
   const onChangeRef = useRef(onChange);
   const byIdRef = useRef(new Map<string, ReservationRow>());
+  // Home monta dos suscripciones a la vez (hoy + día de la rejilla): cada una
+  // necesita su propio nombre de canal o Realtime cierra una de las dos.
+  const channelSuffix = useId().replace(/[^a-zA-Z0-9]/g, "");
 
   isInRangeRef.current = isInRange;
   onChangeRef.current = onChange;
@@ -43,7 +46,7 @@ export function useRealtimeReservations({
   useEffect(() => {
     const supabase = createClient();
     const channel = supabase
-      .channel(`reservations-${restaurantId}`)
+      .channel(`reservations-${restaurantId}-${channelSuffix}`)
       .on(
         "postgres_changes",
         {
@@ -89,7 +92,7 @@ export function useRealtimeReservations({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [restaurantId]);
+  }, [restaurantId, channelSuffix]);
 
   return reservations;
 }

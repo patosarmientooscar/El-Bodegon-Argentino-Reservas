@@ -51,6 +51,12 @@ export function ReservationsClient({
   const [filters, setFilters] = useState<ReservationFilters>(EMPTY_FILTERS);
   const [selectedId, setSelectedId] = useState<string | null>(highlightId);
 
+  // Al pulsar una próxima llegada (/home?id=…) la página no se vuelve a montar:
+  // abre aquí el detalle de la reserva indicada.
+  useEffect(() => {
+    if (highlightId) setSelectedId(highlightId);
+  }, [highlightId]);
+
   useEffect(() => {
     const stored = window.localStorage.getItem(VIEW_STORAGE_KEY);
     if (stored === "list" || stored === "grid") setView(stored);
@@ -89,13 +95,19 @@ export function ReservationsClient({
     [filtered],
   );
 
+  // En la rejilla solo cuentan las reservas que ocupan mesa: las canceladas y
+  // los no-shows desaparecen de su fila (siguen visibles en la vista Lista).
+  const gridReservations = useMemo(
+    () => sorted.filter((r) => r.status !== "cancelled" && r.status !== "no_show"),
+    [sorted],
+  );
   const lunchReservations = useMemo(
-    () => sorted.filter((r) => classifyTurno(r, serviceHours, dayOfWeek) === "lunch"),
-    [sorted, serviceHours, dayOfWeek],
+    () => gridReservations.filter((r) => classifyTurno(r, serviceHours, dayOfWeek) === "lunch"),
+    [gridReservations, serviceHours, dayOfWeek],
   );
   const dinnerReservations = useMemo(
-    () => sorted.filter((r) => classifyTurno(r, serviceHours, dayOfWeek) === "dinner"),
-    [sorted, serviceHours, dayOfWeek],
+    () => gridReservations.filter((r) => classifyTurno(r, serviceHours, dayOfWeek) === "dinner"),
+    [gridReservations, serviceHours, dayOfWeek],
   );
 
   const lunchWindow = useMemo(
@@ -149,7 +161,7 @@ export function ReservationsClient({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <DateNav
           selectedDateIso={selectedDateIso}
-          onChange={(iso) => router.push(`/reservations?date=${iso}`)}
+          onChange={(iso) => router.push(`/home?date=${iso}`, { scroll: false })}
         />
         <div className="flex items-center gap-2">
           <Tabs value={view} onValueChange={(v) => changeView(v as DefaultView)}>
@@ -232,21 +244,14 @@ export function ReservationsClient({
         reservation={selectedReservation}
         tables={tables}
         open={selectedId !== null}
-        onOpenChange={(open) => !open && setSelectedId(null)}
+        onOpenChange={(open) => {
+          if (open) return;
+          setSelectedId(null);
+          // Quita ?id= de la URL para que la misma llegada se pueda volver a abrir.
+          if (highlightId) router.replace(`/home?date=${selectedDateIso}`, { scroll: false });
+        }}
       />
 
-      <ReservationFormDialog
-        restaurantId={restaurantId}
-        tables={tables}
-        maxPartySize={maxPartySize}
-        defaultDurationMinutes={defaultDurationMinutes}
-        defaultDate={new Date(`${selectedDateIso}T00:00:00`)}
-        trigger={
-          <Button size="icon" className="fixed bottom-4 right-4 size-12 rounded-full shadow-lg sm:hidden">
-            <Plus className="size-5" />
-          </Button>
-        }
-      />
     </div>
   );
 }

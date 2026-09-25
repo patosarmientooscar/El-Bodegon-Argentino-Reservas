@@ -15,10 +15,11 @@ import type { TableShape as TableShapeKind } from "@/types/database.types";
 const SHAPE_ORDER: TableShapeKind[] = ["round", "square", "rectangular"];
 
 /** Etiqueta encima de cada grupo: redondas = altas (3), cuadradas = para 2, rectangulares = para 4. */
-function groupLabel(shape: TableShapeKind, group: TableRow[]): string {
-  const capacities = [...new Set(group.map((t) => t.capacity))].sort((a, b) => a - b);
-  const people = `${capacities.join(" y ")} pers.`;
-  return shape === "round" ? `Mesas altas · ${people}` : `Mesas para ${people}`;
+function groupLabel(shape: TableShapeKind, group: TableRow[]): { long: string; short: string } {
+  const capacities = [...new Set(group.map((t) => t.capacity))].sort((a, b) => a - b).join(" y ");
+  return shape === "round"
+    ? { long: `Mesas altas · ${capacities} pers.`, short: `Altas · ${capacities}` }
+    : { long: `Mesas para ${capacities} pers.`, short: `Para ${capacities}` };
 }
 
 function minutesUntil(iso: string, now: Date): number {
@@ -49,20 +50,24 @@ export function FloorPlanCanvas({
   }
 
   return (
-    <div className="relative aspect-4/3 w-full overflow-hidden rounded-lg border bg-muted/30 sm:aspect-16/9">
+    <div className="relative aspect-square w-full overflow-hidden rounded-lg border bg-muted/30 [--label-gap:1.75rem] sm:aspect-16/9 sm:[--label-gap:3rem]">
       <div className="pointer-events-none absolute inset-y-0 left-[63%] w-px bg-border" aria-hidden />
       {SHAPE_ORDER.map((shape) => {
         const group = tables.filter((t) => t.shape === shape);
         if (group.length === 0) return null;
         const xs = group.map((t) => t.pos_x);
         const top = Math.min(...group.map((t) => t.pos_y));
+        const center = (Math.min(...xs) + Math.max(...xs)) / 2;
+        const label = groupLabel(shape, group);
         return (
           <span
             key={shape}
-            className="pointer-events-none absolute -translate-x-1/2 whitespace-nowrap text-xs font-medium text-muted-foreground"
-            style={{ left: `${(Math.min(...xs) + Math.max(...xs)) / 2}%`, top: `calc(${top}% - 3rem)` }}
+            className="pointer-events-none absolute -translate-x-1/2 whitespace-nowrap text-[10px] font-medium text-muted-foreground sm:text-xs"
+            // clamp: que la etiqueta de un grupo pegado al borde no se corte.
+            style={{ left: `clamp(2rem, ${center}%, calc(100% - 2rem))`, top: `calc(${top}% - var(--label-gap))` }}
           >
-            {groupLabel(shape, group)}
+            <span className="sm:hidden">{label.short}</span>
+            <span className="hidden sm:inline">{label.long}</span>
           </span>
         );
       })}
@@ -83,6 +88,7 @@ export function FloorPlanCanvas({
                 <TableShape
                   number={table.number}
                   shape={table.shape}
+                  responsive
                   status={result.status}
                   selected={openTableId === table.id}
                 />

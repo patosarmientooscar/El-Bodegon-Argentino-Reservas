@@ -86,7 +86,7 @@ export function HomeClient({
   const pendingCount = reservations.filter((r) => r.status === "pending").length;
 
   return (
-    <div className="flex flex-col gap-4 pb-20 sm:pb-4">
+    <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold capitalize">{formatDateLong(now)}</h1>
@@ -119,9 +119,11 @@ export function HomeClient({
         <KpiCard label="Cancelaciones / no-shows" value={kpis.cancellations} />
       </div>
 
-      <FloorPlanCanvas tables={tables} reservations={reservations} bufferMinutes={bufferMinutes} now={now} />
-
-      <NextArrivals reservations={reservations} tables={tables} now={now} />
+      {/* Plano a la izquierda y próximas llegadas a la derecha, también en móvil. */}
+      <div className="grid grid-cols-[minmax(0,3fr)_minmax(0,2fr)] items-start gap-2 sm:gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <FloorPlanCanvas tables={tables} reservations={reservations} bufferMinutes={bufferMinutes} now={now} />
+        <NextArrivals reservations={reservations} tables={tables} now={now} />
+      </div>
 
       <ReservationFormDialog
         restaurantId={restaurantId}

@@ -12,8 +12,11 @@ export default function HomeLoading() {
           <Skeleton key={i} className="h-20 w-full" />
         ))}
       </div>
-      <Skeleton className="aspect-4/3 w-full sm:aspect-16/9" />
-      <Skeleton className="h-48 w-full" />
+      <div className="grid grid-cols-[minmax(0,3fr)_minmax(0,2fr)] gap-2 sm:gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <Skeleton className="aspect-square w-full sm:aspect-16/9" />
+        <Skeleton className="h-48 w-full" />
+      </div>
+      <Skeleton className="h-64 w-full" />
     </div>
   );
 }

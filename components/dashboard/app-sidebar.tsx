@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, CalendarClock, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, Settings, LogOut } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -20,7 +20,6 @@ import { RoleBadge } from "@/components/dashboard/role-badge";
 
 const NAV_ITEMS = [
   { href: "/home", label: "Home", icon: LayoutDashboard },
-  { href: "/reservations", label: "Reservas", icon: CalendarClock },
   { href: "/settings", label: "Ajustes", icon: Settings },
 ];
 
