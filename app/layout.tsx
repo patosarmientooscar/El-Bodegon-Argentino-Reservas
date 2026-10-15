@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -18,6 +18,13 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Reservas",
   description: "Panel de gestión de reservas — Evimes",
+  // App instalable: en iPhone se abre a pantalla completa desde el icono.
+  appleWebApp: { capable: true, title: "El Bodegón", statusBarStyle: "black-translucent" },
+  icons: { apple: "/icons/apple-touch-icon.png" },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#1A1714",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

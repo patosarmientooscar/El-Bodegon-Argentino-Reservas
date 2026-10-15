@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import type { RestaurantSettings } from "@/lib/dashboard/context";
 import type { Json } from "@/types/database.types";
+import { PushNotificationsCard } from "@/components/settings/push-notifications-card";
 
 interface NotificationConfig {
   confirmationMessage: string;
@@ -43,7 +44,15 @@ function parseConfig(value: unknown): NotificationConfig {
   return DEFAULT_CONFIG;
 }
 
-export function NotificationsTab({ settings }: { settings: RestaurantSettings }) {
+export function NotificationsTab({
+  settings,
+  currentUserId,
+  vapidPublicKey,
+}: {
+  settings: RestaurantSettings;
+  currentUserId: string;
+  vapidPublicKey: string | null;
+}) {
   const [config, setConfig] = useState<NotificationConfig>(() => parseConfig(settings.notification_settings));
   const [saving, setSaving] = useState(false);
 
@@ -68,7 +77,11 @@ export function NotificationsTab({ settings }: { settings: RestaurantSettings })
 
   return (
     <div className="flex flex-col gap-4">
-      <TelegramTestCard />
+      <PushNotificationsCard
+        restaurantId={settings.restaurant_id}
+        currentUserId={currentUserId}
+        vapidPublicKey={vapidPublicKey}
+      />
       <Card>
         <CardHeader>
           <CardTitle>Notificaciones</CardTitle>
@@ -128,37 +141,3 @@ export function NotificationsTab({ settings }: { settings: RestaurantSettings })
   );
 }
 
-/** Avisos al móvil por Telegram: botón para comprobar que llegan. */
-function TelegramTestCard() {
-  const [sending, setSending] = useState(false);
-
-  async function handleTest() {
-    setSending(true);
-    try {
-      const res = await fetch("/api/telegram/test", { method: "POST" });
-      const data = (await res.json()) as { ok: boolean; sent?: number; chats?: number; error?: string };
-      if (data.ok) toast.success(`Aviso de prueba enviado a ${data.sent} de ${data.chats} chats de Telegram.`);
-      else toast.error("No se pudo enviar el aviso de prueba.", { description: data.error ?? "Telegram no respondió." });
-    } catch {
-      toast.error("No se pudo enviar el aviso de prueba.");
-    } finally {
-      setSending(false);
-    }
-  }
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Avisos por Telegram</CardTitle>
-        <CardDescription>
-          Cada reserva nueva llega al móvil con botones para aceptarla o rechazarla. Comprueba que los avisos llegan.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Button onClick={handleTest} disabled={sending} variant="outline" className="min-h-11">
-          {sending ? "Enviando…" : "Enviar notificación de prueba"}
-        </Button>
-      </CardContent>
-    </Card>
-  );
-}

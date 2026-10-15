@@ -10,6 +10,6 @@ export async function middleware(request: NextRequest) {
 // Los webhooks (Supabase y Telegram) se autentican con su propio secreto.
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|r/|api/webhooks/|api/telegram/webhook|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|sw.js|manifest.webmanifest|r/|api/webhooks/|api/telegram/webhook|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

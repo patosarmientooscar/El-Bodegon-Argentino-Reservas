@@ -4,6 +4,7 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/s
 import { Separator } from "@/components/ui/separator";
 import { UpdateChecker } from "@/components/dashboard/update-checker";
 import { autoLoginEnabled } from "@/lib/supabase/middleware";
+import { PwaRegister } from "@/components/dashboard/pwa-register";
 
 export default async function DashboardLayout({
   children,
@@ -29,6 +30,7 @@ export default async function DashboardLayout({
         <div className="flex-1 p-4">{children}</div>
       </SidebarInset>
       <UpdateChecker />
+      <PwaRegister />
     </SidebarProvider>
   );
 }

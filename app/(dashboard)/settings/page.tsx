@@ -29,6 +29,7 @@ export default async function SettingsPage() {
       specialDates={specialDates ?? []}
       users={users ?? []}
       currentUserId={profile.id}
+      vapidPublicKey={process.env.VAPID_PUBLIC_KEY ?? null}
     />
   );
 }

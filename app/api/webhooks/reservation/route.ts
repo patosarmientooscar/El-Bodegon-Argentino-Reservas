@@ -1,23 +1,27 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { changeList, isCancellation, nowTimeLabel, shouldNotifyChange, statusLabel } from "@/lib/notifications/format";
+import { changePush, newReservationPush, sendPushToRestaurant } from "@/lib/notifications/push";
 import {
   decisionKeyboard,
   describeChanges,
   editMessage,
   newReservationText,
-  nowTimeLabel,
   reservationDetails,
   safeEqual,
   sendToAll,
-  statusLabel,
+  telegramEnabled,
 } from "@/lib/notifications/telegram";
 import type { ReservationRow } from "@/lib/reservations/status";
 
 /**
- * POST /api/webhooks/reservation — lo llama Supabase (pg_net) en cada INSERT y
- * UPDATE relevante de reservations, y pg_cron con type "REMINDER".
- * Header obligatorio: x-webhook-secret = RESERVATION_WEBHOOK_SECRET.
- * Siempre responde 200 salvo auth: un fallo de Telegram no debe reintentar
- * ni afectar a la reserva.
+ * POST /api/webhooks/reservation — sistema general de avisos de reservas.
+ * Lo llama Supabase (pg_net) en cada INSERT y UPDATE relevante de reservations,
+ * y pg_cron con type "REMINDER". Header obligatorio: x-webhook-secret =
+ * RESERVATION_WEBHOOK_SECRET.
+ *
+ * Canales: notificaciones push (si hay claves VAPID) y Telegram (solo si existe
+ * TELEGRAM_BOT_TOKEN). Siempre responde 200 salvo auth: un fallo de envío no
+ * debe reintentar ni afectar a la reserva.
  */
 export const dynamic = "force-dynamic";
 
@@ -45,83 +49,83 @@ export async function POST(request: Request) {
     else if (body.type === "REMINDER") await onReminder(body.record);
     else if (body.type === "UPDATE" && body.old_record) await onUpdate(body.old_record, body.record);
   } catch (error) {
-    console.error("[webhook reservation]", body.type, body.record.id, error);
+    console.error("[avisos]", body.type, body.record.id, error);
   }
   return Response.json({ ok: true });
 }
 
-async function remember(reservationId: string, sent: { chatId: number; messageId: number }[], kind: "new" | "reminder") {
-  if (!sent.length) return;
+/** Cada canal por separado: si uno falla, el otro se envía igual. */
+async function safely(channel: string, task: () => Promise<unknown>) {
   try {
-    const admin = createAdminClient();
-    const { error } = await admin.from("telegram_notifications").insert(
-      sent.map((s) => ({ reservation_id: reservationId, chat_id: s.chatId, message_id: s.messageId, kind })),
-    );
-    if (error) console.error("[webhook reservation] guardar mensajes:", error.message);
+    await task();
   } catch (error) {
-    console.error("[webhook reservation] guardar mensajes:", error);
+    console.error(`[avisos] ${channel}:`, error);
   }
 }
 
 async function onNew(r: ReservationRow, reminder: boolean) {
-  const keyboard = r.status === "pending" ? decisionKeyboard(r.id) : undefined;
-  const sent = await sendToAll(newReservationText(r, reminder), keyboard);
-  await remember(r.id, sent, reminder ? "reminder" : "new");
+  await Promise.all([
+    safely("push", () => sendPushToRestaurant(r.restaurant_id, newReservationPush(r, reminder))),
+    telegramEnabled() && safely("telegram", () => telegramNew(r, reminder)),
+  ]);
 }
 
 async function onReminder(r: ReservationRow) {
   // Se vuelve a leer: si alguien la aceptó justo ahora, no se recuerda.
+  let current: ReservationRow | null = r;
   try {
     const admin = createAdminClient();
     const { data } = await admin.from("reservations").select("*").eq("id", r.id).maybeSingle();
-    if (!data || data.status !== "pending") return;
-    await onNew(data, true);
-  } catch {
-    if (r.status === "pending") await onNew(r, true);
+    current = data;
+  } catch (error) {
+    console.error("[avisos] releer reserva:", error);
   }
+  if (current?.status === "pending") await onNew(current, true);
 }
 
 async function onUpdate(oldR: ReservationRow, r: ReservationRow) {
-  const statusChanged = oldR.status !== r.status;
-  const changes = describeChanges(oldR, r);
-
-  // 1. Si se decidió fuera de Telegram (panel, bot), los mensajes originales
-  //    se actualizan y pierden los botones para que nadie la vuelva a decidir.
-  if (statusChanged && oldR.status === "pending") {
-    try {
-      const admin = createAdminClient();
-      const { data: msgs } = await admin
-        .from("telegram_notifications")
-        .select("chat_id, message_id, kind, decided_by")
-        .eq("reservation_id", r.id);
-      const decidedInTelegram = msgs?.some((m) => m.decided_by);
-      if (msgs?.length && !decidedInTelegram) {
-        const icon = r.status === "confirmed" ? "✅" : r.status === "cancelled" ? "❌" : "ℹ️";
-        const footer = `\n\n${icon} <b>${capitalize(statusLabel(r.status))}</b> desde el panel · ${nowTimeLabel()}`;
-        await Promise.all(
-          msgs.map((m) =>
-            editMessage(m.chat_id, m.message_id, newReservationText({ ...r, status: "pending" }, m.kind === "reminder") + footer),
-          ),
-        );
-      }
-    } catch (error) {
-      console.error("[webhook reservation] editar mensajes:", error);
-    }
-  }
-
-  // 2. Aviso de cambio (sin botones). No se avisa de:
-  //    - decisiones sobre una pendiente (aceptar/rechazar): ya se ven en el mensaje original;
-  //    - sentar / no presentado: son movimientos del propio servicio.
-  const onlyStatus = statusChanged && changes.length === 1;
-  const decision = onlyStatus && oldR.status === "pending" && (r.status === "confirmed" || r.status === "cancelled");
-  const operational = onlyStatus && (r.status === "seated" || r.status === "no_show");
-  if (!changes.length || decision || operational) return;
-
-  const title =
-    statusChanged && r.status === "cancelled" ? "❌ <b>Reserva cancelada</b>" : "✏️ <b>Cambio en una reserva</b>";
-  await sendToAll(`${title}\n\n${changes.map((c) => `• ${c}`).join("\n")}\n\n${reservationDetails(r)}`);
+  const changes = changeList(oldR, r);
+  const notify = shouldNotifyChange(oldR, r, changes);
+  await Promise.all([
+    notify && safely("push", () => sendPushToRestaurant(r.restaurant_id, changePush(oldR, r))),
+    telegramEnabled() && safely("telegram", () => telegramUpdate(oldR, r, notify)),
+  ]);
 }
 
-function capitalize(text: string) {
-  return text.charAt(0).toUpperCase() + text.slice(1);
+/* ── Telegram (apagado salvo TELEGRAM_BOT_TOKEN) ─────────────────────────── */
+
+async function telegramNew(r: ReservationRow, reminder: boolean) {
+  const keyboard = r.status === "pending" ? decisionKeyboard(r.id) : undefined;
+  const sent = await sendToAll(newReservationText(r, reminder), keyboard);
+  if (!sent.length) return;
+  const admin = createAdminClient();
+  const { error } = await admin.from("telegram_notifications").insert(
+    sent.map((s) => ({ reservation_id: r.id, chat_id: s.chatId, message_id: s.messageId, kind: reminder ? "reminder" : "new" })),
+  );
+  if (error) console.error("[avisos] telegram guardar mensajes:", error.message);
+}
+
+async function telegramUpdate(oldR: ReservationRow, r: ReservationRow, notify: boolean) {
+  // Si se decidió fuera de Telegram (panel, móvil), los mensajes originales
+  // pierden los botones para que nadie la vuelva a decidir.
+  if (oldR.status === "pending" && r.status !== "pending") {
+    const admin = createAdminClient();
+    const { data: msgs } = await admin
+      .from("telegram_notifications")
+      .select("chat_id, message_id, kind, decided_by")
+      .eq("reservation_id", r.id);
+    if (msgs?.length && !msgs.some((m) => m.decided_by)) {
+      const icon = r.status === "confirmed" ? "✅" : r.status === "cancelled" ? "❌" : "ℹ️";
+      const label = statusLabel(r.status);
+      const footer = `\n\n${icon} <b>${label.charAt(0).toUpperCase() + label.slice(1)}</b> desde el panel · ${nowTimeLabel()}`;
+      await Promise.all(
+        msgs.map((m) =>
+          editMessage(m.chat_id, m.message_id, newReservationText({ ...r, status: "pending" }, m.kind === "reminder") + footer),
+        ),
+      );
+    }
+  }
+  if (!notify) return;
+  const title = isCancellation(oldR, r) ? "❌ <b>Reserva cancelada</b>" : "✏️ <b>Cambio en una reserva</b>";
+  await sendToAll(`${title}\n\n${describeChanges(oldR, r).map((c) => `• ${c}`).join("\n")}\n\n${reservationDetails(r)}`);
 }

@@ -1,26 +1,25 @@
 -- PEGAR EN SUPABASE → SQL Editor (una sola vez).
--- Avisos de reservas por Telegram (Fase 1). Antes de pegarlo:
---   1. Cambia PEGA_AQUI_RESERVATION_WEBHOOK_SECRET (al final) por el mismo
---      valor que pongas en Vercel como RESERVATION_WEBHOOK_SECRET.
---   2. Comprueba la URL del panel (al final).
--- Para deshacerlo: PEGAR_TELEGRAM_DESHACER.sql
--- Es una copia de supabase/migrations/20261015120000_telegram_notifications.sql
--- más la configuración del final.
+-- Avisos de reservas al móvil (notificaciones push).
+--
+-- ANTES DE PEGARLO cambia UNA cosa al final del todo:
+--   PEGA_AQUI_RESERVATION_WEBHOOK_SECRET  →  el mismo texto que pongas en Vercel
+--   como RESERVATION_WEBHOOK_SECRET.
+--
+-- Para deshacerlo: PEGAR_AVISOS_DESHACER.sql
+-- (Copia de supabase/migrations/20261016120000_reservation_events_and_push.sql
+--  más la configuración del final.)
 
--- Fase 1 — Avisos de reservas por Telegram.
+-- Avisos de reservas (Fase 2): notificaciones push al móvil.
 --
--- Cada INSERT/UPDATE relevante de public.reservations se envía (pg_net, en
--- segundo plano) a POST /api/webhooks/reservation del panel, con un header
--- secreto. Es lo mismo que un "Database Webhook" del dashboard de Supabase,
--- pero con la URL y el secreto guardados en private.webhook_config en lugar de
--- escritos dentro del trigger.
+-- 1. Cada INSERT/UPDATE relevante de public.reservations se envía (pg_net, en
+--    segundo plano) a POST /api/webhooks/reservation del panel con un header
+--    secreto. El panel decide a quién avisar (push; Telegram solo si se activa).
+--    Es asíncrono: si el envío falla, la reserva se guarda igual.
+-- 2. pg_cron revisa cada minuto las reservas que llevan más de 15 min
+--    pendientes y reenvía el aviso UNA sola vez (pending_reminder_sent_at).
+-- 3. push_subscriptions: un móvil/navegador por fila, con RLS por restaurante.
 --
--- pg_net es asíncrono: si el panel o Telegram fallan, la reserva se guarda igual.
---
--- Recordatorio: pg_cron revisa cada minuto las reservas que llevan más de
--- 15 min pendientes y reenvía el aviso UNA sola vez (pending_reminder_sent_at).
---
--- Solo añade objetos nuevos; deshacer con PEGAR_TELEGRAM_DESHACER.sql.
+-- Solo añade objetos nuevos; deshacer con PEGAR_AVISOS_DESHACER.sql.
 
 create extension if not exists pg_net;
 create extension if not exists pg_cron;
@@ -37,19 +36,49 @@ update public.reservations
   where status = 'pending' and pending_reminder_sent_at is null;
 
 -- ---------------------------------------------------------------------------
--- 2. Configuración privada: URL del endpoint y secreto (fuera de la API REST)
+-- 2. Suscripciones push (un dispositivo por fila)
 -- ---------------------------------------------------------------------------
-create schema if not exists private;
-revoke all on schema private from public, anon, authenticated;
-
-create table if not exists private.webhook_config (
-  id boolean primary key default true check (id),
-  endpoint_url text not null,
-  secret text not null
+create table if not exists public.push_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  restaurant_id uuid not null references public.restaurants (id) on delete cascade,
+  endpoint text not null unique,
+  p256dh text not null,
+  auth text not null,
+  device text,
+  created_at timestamptz not null default now()
 );
 
+create index if not exists push_subscriptions_restaurant_idx
+  on public.push_subscriptions (restaurant_id);
+
+alter table public.push_subscriptions enable row level security;
+
+-- El equipo del restaurante ve y quita los dispositivos de su restaurante;
+-- cada usuario solo da de alta los suyos.
+drop policy if exists "push_subscriptions_select" on public.push_subscriptions;
+create policy "push_subscriptions_select" on public.push_subscriptions
+  for select
+  using (restaurant_id = public.current_restaurant_id());
+
+drop policy if exists "push_subscriptions_insert" on public.push_subscriptions;
+create policy "push_subscriptions_insert" on public.push_subscriptions
+  for insert
+  with check (user_id = auth.uid() and restaurant_id = public.current_restaurant_id());
+
+drop policy if exists "push_subscriptions_update" on public.push_subscriptions;
+create policy "push_subscriptions_update" on public.push_subscriptions
+  for update
+  using (restaurant_id = public.current_restaurant_id())
+  with check (user_id = auth.uid() and restaurant_id = public.current_restaurant_id());
+
+drop policy if exists "push_subscriptions_delete" on public.push_subscriptions;
+create policy "push_subscriptions_delete" on public.push_subscriptions
+  for delete
+  using (restaurant_id = public.current_restaurant_id());
+
 -- ---------------------------------------------------------------------------
--- 3. Mensajes de Telegram enviados por reserva (para editarlos y quitar botones)
+-- 3. Mensajes de Telegram (para el futuro: solo se usa si se activa el bot).
 --    RLS sin políticas: solo el servidor (service role) puede leer/escribir.
 -- ---------------------------------------------------------------------------
 create table if not exists public.telegram_notifications (
@@ -69,7 +98,19 @@ create index if not exists telegram_notifications_reservation_idx
 alter table public.telegram_notifications enable row level security;
 
 -- ---------------------------------------------------------------------------
--- 4. Envío del evento al panel (nunca rompe la operación que lo dispara)
+-- 4. Configuración privada: URL del endpoint y secreto (fuera de la API REST)
+-- ---------------------------------------------------------------------------
+create schema if not exists private;
+revoke all on schema private from public, anon, authenticated;
+
+create table if not exists private.webhook_config (
+  id boolean primary key default true check (id),
+  endpoint_url text not null,
+  secret text not null
+);
+
+-- ---------------------------------------------------------------------------
+-- 5. Envío del evento al panel (nunca rompe la operación que lo dispara)
 -- ---------------------------------------------------------------------------
 create or replace function private.post_reservation_event(p_type text, p_record jsonb, p_old jsonb)
 returns void
@@ -143,7 +184,7 @@ create trigger reservations_notify_update
   execute function private.reservations_notify();
 
 -- ---------------------------------------------------------------------------
--- 5. Recordatorio de pendientes (> 15 min), una sola vez — pg_cron cada minuto
+-- 6. Recordatorio de pendientes (> 15 min), una sola vez — pg_cron cada minuto
 -- ---------------------------------------------------------------------------
 create or replace function private.remind_pending_reservations()
 returns void
@@ -183,7 +224,7 @@ select cron.schedule(
 );
 
 -- ---------------------------------------------------------------------------
--- 6. CONFIGURACIÓN — rellena el secreto antes de ejecutar
+-- 7. CONFIGURACIÓN — cambia el secreto antes de ejecutar
 -- ---------------------------------------------------------------------------
 insert into private.webhook_config (id, endpoint_url, secret)
 values (

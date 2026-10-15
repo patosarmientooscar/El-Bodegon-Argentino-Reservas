@@ -38,6 +38,7 @@ export function SettingsClient({
   specialDates,
   users,
   currentUserId,
+  vapidPublicKey,
 }: {
   restaurant: Restaurant;
   settings: RestaurantSettings;
@@ -46,6 +47,8 @@ export function SettingsClient({
   specialDates: SpecialDateRow[];
   users: UserRow[];
   currentUserId: string;
+  /** Clave pública VAPID (no es secreta); null si las push no están configuradas. */
+  vapidPublicKey: string | null;
 }) {
   const [tab, setTab] = useState<string>("profile");
 
@@ -74,7 +77,7 @@ export function SettingsClient({
           <RulesTab settings={settings} />
         </TabsContent>
         <TabsContent value="notifications">
-          <NotificationsTab settings={settings} />
+          <NotificationsTab settings={settings} currentUserId={currentUserId} vapidPublicKey={vapidPublicKey} />
         </TabsContent>
         <TabsContent value="users">
           <UsersTab users={users} currentUserId={currentUserId} />
