@@ -41,9 +41,9 @@ const DEFAULTS: PublicBookingConfig = {
 
 const BY_SLUG: Record<string, Partial<PublicBookingConfig>> = {
   "el-bodegon-argentino": {
-    // PENDIENTE: número de ejemplo (el mismo que la web). restaurants.phone está vacío en la BD.
-    phone: process.env.BODEGON_PHONE || "+34600000000",
-    whatsapp: process.env.BODEGON_WHATSAPP || "34600000000",
+    // Mismo número que la web. restaurants.phone está vacío en la BD.
+    phone: process.env.BODEGON_PHONE || "+34618025580",
+    whatsapp: process.env.BODEGON_WHATSAPP || "34618025580",
   },
 };
 

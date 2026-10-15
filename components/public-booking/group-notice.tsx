@@ -3,12 +3,10 @@ export function GroupNotice({
   open,
   max,
   telHref,
-  whatsappHref,
 }: {
   open: boolean;
   max: number;
   telHref: string | null;
-  whatsappHref: string | null;
 }) {
   return (
     <div className="rv-collapse" data-open={open ? "true" : "false"} inert={!open}>
@@ -17,22 +15,11 @@ export function GroupNotice({
           <p className="rv-group-title">
             ¿Sois más de {max}? <span className="rv-script">Llámanos</span>
           </p>
-          <p className="rv-group-text">Para grupos preparamos la mesa contigo, por teléfono o WhatsApp.</p>
+          <p className="rv-group-text">Para grupos preparamos la mesa contigo, por teléfono al +34 618 02 55 80.</p>
           <div className="rv-group-actions">
             {telHref && (
               <a className="rv-btn rv-btn-gold" href={telHref}>
                 Llamar
-              </a>
-            )}
-            {whatsappHref && (
-              <a
-                className="rv-btn rv-btn-line"
-                href={whatsappHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={telHref ? undefined : { gridColumn: "1 / -1" }}
-              >
-                WhatsApp
               </a>
             )}
           </div>

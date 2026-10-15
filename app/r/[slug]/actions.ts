@@ -64,7 +64,7 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
   const occupancy = await getOccupancy(data.slug, rules, now);
 
   if (data.partySize > rules.maxPartySize) {
-    fieldErrors.partySize = `Para más de ${rules.maxPartySize} personas, llámanos o escríbenos por WhatsApp.`;
+    fieldErrors.partySize = `Para más de ${rules.maxPartySize} personas, llámanos al +34 618 02 55 80.`;
   }
   if (!isSlotBookable(rules, data.date, data.time, now)) {
     fieldErrors.time = "Esa hora ya no está disponible. Elige otra, por favor.";

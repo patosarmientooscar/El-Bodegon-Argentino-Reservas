@@ -27,10 +27,13 @@ export function AppSidebar({
   restaurantName,
   userName,
   role,
+  canSignOut = true,
 }: {
   restaurantName: string;
   userName: string | null;
   role: "admin" | "staff";
+  /** false con el acceso directo: cerrar sesión volvería a entrar solo. */
+  canSignOut?: boolean;
 }) {
   const pathname = usePathname();
 
@@ -67,16 +70,18 @@ export function AppSidebar({
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton onClick={handleSignOut}>
-              <LogOut />
-              <span>Cerrar sesión</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
+      {canSignOut && (
+        <SidebarFooter>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton onClick={handleSignOut}>
+                <LogOut />
+                <span>Cerrar sesión</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarFooter>
+      )}
     </Sidebar>
   );
 }
