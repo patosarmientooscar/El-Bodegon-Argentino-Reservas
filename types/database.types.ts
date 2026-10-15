@@ -126,6 +126,7 @@ export interface Database {
           notes: string | null;
           created_at: string;
           updated_at: string;
+          pending_reminder_sent_at: string | null;
         };
         Insert: {
           id?: string;
@@ -141,6 +142,7 @@ export interface Database {
           notes?: string | null;
           created_at?: string;
           updated_at?: string;
+          pending_reminder_sent_at?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["reservations"]["Insert"]>;
         Relationships: [
@@ -156,6 +158,38 @@ export interface Database {
             columns: ["table_id"];
             isOneToOne: false;
             referencedRelation: "tables";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      telegram_notifications: {
+        Row: {
+          id: number;
+          reservation_id: string;
+          chat_id: number;
+          message_id: number;
+          kind: "new" | "reminder";
+          decided_by: string | null;
+          decided_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: never;
+          reservation_id: string;
+          chat_id: number;
+          message_id: number;
+          kind: "new" | "reminder";
+          decided_by?: string | null;
+          decided_at?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["telegram_notifications"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "telegram_notifications_reservation_id_fkey";
+            columns: ["reservation_id"];
+            isOneToOne: false;
+            referencedRelation: "reservations";
             referencedColumns: ["id"];
           },
         ];
