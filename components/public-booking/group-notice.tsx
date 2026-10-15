@@ -3,10 +3,12 @@ export function GroupNotice({
   open,
   max,
   telHref,
+  phoneLabel,
 }: {
   open: boolean;
   max: number;
   telHref: string | null;
+  phoneLabel: string | null;
 }) {
   return (
     <div className="rv-collapse" data-open={open ? "true" : "false"} inert={!open}>
@@ -15,7 +17,7 @@ export function GroupNotice({
           <p className="rv-group-title">
             ¿Sois más de {max}? <span className="rv-script">Llámanos</span>
           </p>
-          <p className="rv-group-text">Para grupos preparamos la mesa contigo, por teléfono al +34 618 02 55 80.</p>
+          <p className="rv-group-text">Para grupos preparamos la mesa contigo, por teléfono{phoneLabel ? ` al ${phoneLabel}` : ""}.</p>
           <div className="rv-group-actions">
             {telHref && (
               <a className="rv-btn rv-btn-gold" href={telHref}>

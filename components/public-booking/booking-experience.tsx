@@ -205,6 +205,7 @@ export function BookingExperience({
               open={groupNoticeOpen}
               max={rules.maxPartySize}
               telHref={restaurant.telHref}
+              phoneLabel={restaurant.phoneLabel}
             />
             {fieldErrors.partySize && <p className="rv-error">{fieldErrors.partySize}</p>}
           </div>

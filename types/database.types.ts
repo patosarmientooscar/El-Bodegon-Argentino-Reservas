@@ -12,7 +12,8 @@ export type TableStatusOverride = "blocked";
 export type ReservationStatus = "pending" | "confirmed" | "cancelled" | "no_show" | "seated";
 export type ReservationSource = "web" | "phone" | "walk_in" | "whatsapp";
 export type Turno = "lunch" | "dinner";
-export type SpecialDateType = "closed" | "blocked";
+/** hours = horario distinto ese día (Fase 5: PEGAR_AJUSTES.sql). */
+export type SpecialDateType = "closed" | "blocked" | "hours";
 export type UserRole = "admin" | "staff";
 export type DefaultView = "list" | "grid";
 
@@ -54,6 +55,8 @@ export interface Database {
           deposit_policy: Json | null;
           notification_settings: Json | null;
           web_max_party_size: number;
+          /** Fase 5 (PEGAR_AJUSTES.sql): falta si aún no se ha pegado. */
+          online_paused_until?: string | null;
         };
         Insert: {
           id?: string;
@@ -67,6 +70,7 @@ export interface Database {
           deposit_policy?: Json | null;
           notification_settings?: Json | null;
           web_max_party_size?: number;
+          online_paused_until?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["restaurant_settings"]["Insert"]>;
         Relationships: [
@@ -263,6 +267,9 @@ export interface Database {
           date: string;
           type: SpecialDateType;
           note: string | null;
+          /** Fase 5: solo en type = "hours"; falta si aún no se ha pegado el SQL. */
+          open_time?: string | null;
+          close_time?: string | null;
         };
         Insert: {
           id?: string;
@@ -270,6 +277,8 @@ export interface Database {
           date: string;
           type: SpecialDateType;
           note?: string | null;
+          open_time?: string | null;
+          close_time?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["special_dates"]["Insert"]>;
         Relationships: [

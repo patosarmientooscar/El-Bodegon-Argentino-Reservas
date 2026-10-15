@@ -40,6 +40,7 @@ export default async function HomePage({
       highlightId={params.id ?? null}
       maxPartySize={settings.max_party_size}
       defaultDurationMinutes={settings.default_reservation_duration_minutes}
+      onlinePausedUntil={settings.online_paused_until ?? null}
     />
   );
 }

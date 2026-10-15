@@ -65,6 +65,29 @@ export default async function PublicBookingPage({ params }: Props) {
     );
   }
 
+  // Pausa desde Ajustes → Reservas online: mensaje amable y teléfono.
+  if (result.restaurant.paused) {
+    const { name, telHref, phoneLabel } = result.restaurant;
+    return (
+      <main className="rv">
+        <section className="rv-stage">
+          <PublicHeader name={name} />
+        </section>
+        <section className="rv-panel rv-unavailable">
+          <p className="rv-success-title">Ahora mismo no aceptamos reservas online</p>
+          <p className="rv-success-text">
+            {phoneLabel ? `Llámanos al ${phoneLabel} y te buscamos mesa.` : "Llámanos y te buscamos mesa."}
+          </p>
+          {telHref && (
+            <a className="rv-btn rv-btn-gold rv-btn-wide" href={telHref}>
+              Llamar
+            </a>
+          )}
+        </section>
+      </main>
+    );
+  }
+
   const now = new Date();
   const occupancy = await getOccupancy(slug, result.restaurant.rules, now);
 

@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Clock, Map as MapIcon, Plus } from "lucide-react";
+import { ChevronDown, CirclePause, Clock, Map as MapIcon, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
@@ -16,6 +17,7 @@ import { ReservationCard } from "@/components/today/reservation-card";
 import { useRealtimeReservations } from "@/hooks/use-realtime-reservations";
 import { createClient } from "@/lib/supabase/client";
 import { formatDateLong, formatTime, isoDate } from "@/lib/reservations/date";
+import { pauseState } from "@/lib/settings/online";
 import type { ReservationRow, TableRow } from "@/lib/reservations/status";
 import type { ReservationStatus } from "@/types/database.types";
 
@@ -49,6 +51,7 @@ export function TodayClient({
   highlightId,
   maxPartySize,
   defaultDurationMinutes,
+  onlinePausedUntil,
 }: {
   restaurantId: string;
   tables: TableRow[];
@@ -60,6 +63,8 @@ export function TodayClient({
   highlightId: string | null;
   maxPartySize: number;
   defaultDurationMinutes: number;
+  /** restaurant_settings.online_paused_until (null si activas o sin el SQL de la Fase 5). */
+  onlinePausedUntil: string | null;
 }) {
   const router = useRouter();
   const [navigating, startNavigation] = useTransition();
@@ -133,6 +138,7 @@ export function TodayClient({
   const arrived = active.filter((r) => r.status === "seated").length;
 
   const isToday = selectedDateIso === todayIso;
+  const pause = pauseState(onlinePausedUntil, now);
   const tableNumber = useMemo(() => new Map(tables.map((t) => [t.id, t.number])), [tables]);
 
   // Pendientes de otros días (para no dejarse ninguna sin aceptar).
@@ -279,6 +285,21 @@ export function TodayClient({
           <span className="mt-1.5 text-sm font-medium text-muted-foreground">{isToday ? "Comensales hoy" : "Comensales"}</span>
         </div>
       </div>
+
+      {pause.paused && (
+        <div
+          role="status"
+          className="flex min-h-12 flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border-2 border-amber-400/60 bg-amber-400/10 px-3 py-2 text-[15px] text-amber-100"
+        >
+          <CirclePause className="size-5 shrink-0 text-amber-300" />
+          <span className="flex-1">
+            <strong className="font-semibold">Reservas online en pausa</strong> {pause.label}. Web y WhatsApp no aceptan reservas.
+          </span>
+          <Link href="/settings?tab=online" className="flex min-h-11 items-center font-semibold text-amber-300 underline-offset-4 hover:underline">
+            Cambiar
+          </Link>
+        </div>
+      )}
 
       {pendingElsewhere.length > 0 && (
         <button

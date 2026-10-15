@@ -13,6 +13,7 @@ import type { Database } from "@/types/database.types";
 import type { Occupancy } from "./availability";
 import { getPublicBookingConfig } from "./config";
 import { toTelHref } from "./phone";
+import { formatPhone } from "@/lib/settings/online";
 import type { BookingRules, ServiceWindow } from "./schedule";
 import { addDays, zonedToUtc, zonedToday } from "./time";
 
@@ -36,6 +37,11 @@ const configSchema = z.object({
     }),
   ),
   closed_dates: z.array(z.string()),
+  // Fase 5 (PEGAR_AJUSTES.sql). Sin el SQL no vienen y todo sigue como antes.
+  online_paused: z.boolean().optional(),
+  special_hours: z
+    .record(z.string(), z.object({ open_time: z.string().nullable(), close_time: z.string().nullable() }))
+    .optional(),
 });
 
 /** Todo lo que necesita la página. Serializable: se pasa tal cual al cliente. */
@@ -46,6 +52,10 @@ export interface PublicRestaurant {
   durationMinutes: number;
   telHref: string | null;
   whatsappHref: string | null;
+  /** "+34 618 02 55 80" para los textos (grupos, pausa). */
+  phoneLabel: string | null;
+  /** Reservas online en pausa desde Ajustes. */
+  paused: boolean;
   rules: BookingRules;
 }
 
@@ -98,7 +108,15 @@ export const getPublicRestaurant = cache(async (slug: string): Promise<PublicRes
     }
   }
 
-  const phone = config.phone ?? db.phone;
+  // Primero el teléfono de Ajustes; si está vacío, el de config.ts.
+  const phone = db.phone || config.phone;
+
+  const specialHours: Record<string, ServiceWindow[]> = {};
+  for (const [date, h] of Object.entries(db.special_hours ?? {})) {
+    if (!h.open_time || !h.close_time) continue;
+    const open = h.open_time.slice(0, 5);
+    specialHours[date] = [{ turno: open < "17:00" ? "lunch" : "dinner", open, close: h.close_time.slice(0, 5) }];
+  }
 
   return {
     status: "ok",
@@ -108,6 +126,8 @@ export const getPublicRestaurant = cache(async (slug: string): Promise<PublicRes
       address: db.address,
       durationMinutes: db.settings.duration_minutes,
       telHref: phone ? toTelHref(phone) : null,
+      phoneLabel: phone ? formatPhone(phone) : null,
+      paused: db.online_paused === true,
       whatsappHref: config.whatsapp
         ? `https://wa.me/${config.whatsapp.replace(/\D/g, "")}?text=${encodeURIComponent(
             `Hola, queremos reservar en ${db.name} para un grupo de más de ${db.settings.web_max_party_size} personas.`,
@@ -124,6 +144,7 @@ export const getPublicRestaurant = cache(async (slug: string): Promise<PublicRes
         durationMinutes: db.settings.duration_minutes,
         weeklyHours,
         closedDates: db.closed_dates,
+        specialHours,
       },
     },
   };

@@ -1,7 +1,7 @@
 # Plan — Mejoras del panel y notificaciones (El Bodegón Argentino)
 
 Producción: https://el-bodegon-argentino-reservas.vercel.app (Vercel despliega `main`).
-Ramas: `mejoras-panel-notificaciones` (Fase 1) · `fase-2-push` y `fix-avisos-movil` (Fase 2), todas ya en `main` · `fase-3-hoy` (Fase 3), ya en `main` · `fase-4-login` (Fase 4, **sin subir**).
+Ramas: `mejoras-panel-notificaciones` (Fase 1) · `fase-2-push` y `fix-avisos-movil` (Fase 2), todas ya en `main` · `fase-3-hoy` (Fase 3), ya en `main` · `fase-4-login` (Fase 4), ya en `main` · `fase-5-ajustes` (Fase 5).
 
 ## Cómo está montado (resumen)
 
@@ -29,8 +29,8 @@ Ramas: `mejoras-panel-notificaciones` (Fase 1) · `fase-2-push` y `fix-avisos-mo
 | 1. Avisos por Telegram | Código en `main`, **apagado** (ver "Futuro / opcional") |
 | 2. App en el móvil + notificaciones push | ✅ En producción |
 | 3. Home "Hoy" mobile-first | ✅ En producción |
-| 4. Login | ✅ Hecho y probado en local (rama `fase-4-login`) · ⏳ falta "push it" + configurar Supabase |
-| 5. Ajustes | Pendiente (el personal ya puede activar los avisos: hecho en Fase 3) |
+| 4. Login | ✅ En producción (plantilla de email: necesita SMTP propio) |
+| 5. Ajustes | ✅ Hecha · ⏳ pegar `PEGAR_AJUSTES.sql` en Supabase |
 
 ## Sistema de avisos (común a todos los canales)
 
@@ -188,6 +188,59 @@ Deshacer: `PEGAR_AVISOS_DESHACER.sql`. Sustituye al SQL de Telegram, que nunca s
   "Ese enlace ha caducado…"; `/nueva-contrasena` sin enlace → "Enlace caducado".
 - `tsc`, `eslint`, `next build` sin errores.
 - **Falta en real**: entrar con tu cuenta y recibir el email de recuperación.
+
+## Fase 5 — Ajustes (sin tocar código)
+
+### Qué hace (solo admin; staff solo ve "Avisos en el móvil")
+Ajustes tiene ahora estas secciones (en móvil, fila de botones deslizable; `?tab=` abre una):
+- **Reservas online** (`online-tab.tsx`): interruptor grande Activadas / En pausa, con "Solo hoy"
+  (se reactiva sola a las 00:00 de Madrid) o "Hasta que las vuelva a activar". Reglas: máximo
+  de personas online (`web_max_party_size`), teléfono del restaurante (`restaurants.phone`, el que
+  ven los grupos grandes), antelación mínima y máxima, duración media (ya la usaban la web, el bot
+  y el cálculo de mesas) y máximo para WhatsApp/panel (`max_party_size`). Vista previa del texto
+  "Para más de N personas, llámanos al …".
+- **Horarios** (`hours-tab.tsx`): cada día, comida y cena con interruptor y horas; valida horas.
+- **Días especiales** (`blocks-tab.tsx`): "Cerrado todo el día" u "Horario especial" (desde/hasta),
+  lista de próximos con borrar.
+- **Equipo** (`users-tab.tsx`, `app/api/team/route.ts`): lista con rol; "Dar acceso" crea la cuenta
+  como staff con contraseña provisional (service role solo en el servidor, comprobando que quien
+  lo pide es admin) y se la pasas tú; sin email, porque el correo de Supabase sin SMTP propio no
+  llega al personal. "Quitar" le saca del restaurante y borra sus avisos del móvil.
+- **Avisos** (Fase 2, sin cambios), **Mesas** y **Perfil** como estaban. "Reglas" desaparece: sus
+  campos útiles están en Reservas online (buffer y depósito no los usaba nada).
+- Cada sección: "Guardar" → "Guardado ✓" y errores claros en español (`save-bar.tsx`).
+- **Hoy**: aviso "Reservas online en pausa…" con enlace a Ajustes.
+- **Web** (`/r/…` y la web estática `reservas page/`): mensaje "Ahora mismo no aceptamos reservas
+  online, llámanos al …", horario especial por día y teléfono de Ajustes (si está vacío, el de
+  siempre). Copia de los archivos estáticos anteriores en `reservas page/backups/antes-fase5-ajustes/`.
+
+### Base de datos — `PEGAR_AJUSTES.sql` (deshacer: `PEGAR_AJUSTES_DESHACER.sql`)
+Copia de `supabase/migrations/20261020120000_ajustes_reservas_online.sql`. Sin secretos.
+- `restaurant_settings.online_paused_until`; `special_dates.open_time/close_time` y tipo `hours`.
+- `online_booking_paused()` y `online_paused_dates()` (internas).
+- `public_booking_get_config` (+ `online_paused`, `special_hours`; días en pausa en `closed_dates`),
+  `public_booking_create` (error `online_paused`, horario especial).
+- **Bot v1 sin tocar su código**: `bot_get_config` añade los días en pausa a `closed_dates` (el bot
+  dice que ese día está cerrado) y `bot_create_reservation` devuelve `slot_unavailable` si está
+  en pausa, el día está cerrado o la hora cae fuera del horario especial. Límite: el bot no conoce
+  el horario especial, así que puede proponer horas de su horario normal ese día y luego decir
+  que no hay hueco; y no puede decir "llámanos" porque ese texto está en su código.
+- Permisos (RLS): mesas solo admin; avisos: cada uno los suyos (admin, todos). Los demás ajustes
+  ya eran solo admin.
+- **Seguridad**: `handle_new_user` ya no acepta el restaurante/rol que mande quien se registra
+  (`raw_user_meta_data`); solo `raw_app_meta_data`, que pone el servidor.
+- **Sin el SQL** la app funciona como antes: Ajustes muestra "Falta activar esta opción" en la
+  pausa y el horario especial; web, bot, Hoy y login no cambian.
+
+### Probado
+- Ajustes con Supabase simulado (375 px y 1280 px): pausa hoy (00:00 Madrid), reactivar, reglas y
+  teléfono, error de permiso en español, horarios (validación + 14 filas), día especial, borrar,
+  dar acceso, quitar acceso (+ borra avisos), "Falta activar" sin SQL, aviso en Hoy.
+- Web estática con la config real (igual que antes) y simulada: pausa, teléfono de Ajustes,
+  horario especial. `/r/…` con datos reales. `/api/team` sin sesión → 401.
+- SQL: sintaxis comprobada con el parser oficial de PostgreSQL (libpg-query); no se ha podido
+  ejecutar contra la base real (lo pega el dueño).
+- `tsc`, `eslint`, `next build` sin errores.
 
 ## Futuro / opcional — Avisos por Telegram (apagado)
 

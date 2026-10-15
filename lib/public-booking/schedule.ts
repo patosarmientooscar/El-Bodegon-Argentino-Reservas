@@ -31,6 +31,8 @@ export interface BookingRules {
   weeklyHours: Record<string, ServiceWindow[]>;
   /** Fechas "YYYY-MM-DD" cerradas o bloqueadas (special_dates). */
   closedDates: string[];
+  /** Fecha "YYYY-MM-DD" → horario especial de ese día (sustituye al de la semana). */
+  specialHours?: Record<string, ServiceWindow[]>;
 }
 
 export interface DayOption {
@@ -61,6 +63,7 @@ export interface AvailabilityContext {
 
 function windowsFor(rules: BookingRules, date: string): ServiceWindow[] {
   if (rules.closedDates.includes(date)) return [];
+  if (rules.specialHours?.[date]) return rules.specialHours[date];
   return rules.weeklyHours[String(dayOfWeek(date))] ?? [];
 }
 

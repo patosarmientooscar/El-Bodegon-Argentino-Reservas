@@ -59,12 +59,16 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
   // Relee la configuración: el servidor es quien decide, no lo que pintó el móvil.
   const result = await getPublicRestaurant(data.slug);
   if (result.status !== "ok") return { ok: false, message: GENERIC_ERROR };
+  if (result.restaurant.paused) {
+    const tel = result.restaurant.phoneLabel;
+    return { ok: false, message: `Ahora mismo no aceptamos reservas online. Llámanos${tel ? ` al ${tel}` : ""} y te buscamos mesa.` };
+  }
   const { rules } = result.restaurant;
   const now = new Date();
   const occupancy = await getOccupancy(data.slug, rules, now);
 
   if (data.partySize > rules.maxPartySize) {
-    fieldErrors.partySize = `Para más de ${rules.maxPartySize} personas, llámanos al +34 618 02 55 80.`;
+    fieldErrors.partySize = `Para más de ${rules.maxPartySize} personas, llámanos${result.restaurant.phoneLabel ? ` al ${result.restaurant.phoneLabel}` : ""}.`;
   }
   if (!isSlotBookable(rules, data.date, data.time, now)) {
     fieldErrors.time = "Esa hora ya no está disponible. Elige otra, por favor.";
@@ -85,6 +89,10 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
   });
 
   if (!created.ok) {
+    if (created.code === "online_paused") {
+      const tel = result.restaurant.phoneLabel;
+      return { ok: false, message: `Ahora mismo no aceptamos reservas online. Llámanos${tel ? ` al ${tel}` : ""} y te buscamos mesa.` };
+    }
     const timeCodes = ["past_time", "too_far", "closed_day", "outside_hours"];
     if (timeCodes.includes(created.code) || created.code === "slot_unavailable") {
       return {
