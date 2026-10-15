@@ -1,16 +1,47 @@
-import { redirect } from "next/navigation";
+import { getDashboardContext } from "@/lib/dashboard/context";
+import { getDayRange, isoDate } from "@/lib/reservations/date";
+import { ReservationsClient } from "@/components/reservations/reservations-client";
 
-// Reservas vive ahora dentro de Home (debajo del plano). Esta ruta solo
-// redirige, para que los enlaces antiguos (?date=, ?id=) sigan funcionando.
+// Pestaña "Reservas": lista y rejilla de cualquier día, con filtros (antes iba debajo de Home).
 export default async function ReservationsPage({
   searchParams,
 }: {
   searchParams: Promise<{ date?: string; id?: string }>;
 }) {
   const params = await searchParams;
-  const query = new URLSearchParams();
-  if (params.date) query.set("date", params.date);
-  if (params.id) query.set("id", params.id);
-  const qs = query.toString();
-  redirect(qs ? `/home?${qs}` : "/home#reservas");
+  const { supabase, restaurant, settings } = await getDashboardContext();
+
+  const selectedDate = params.date ? new Date(`${params.date}T00:00:00`) : new Date();
+  const selected = getDayRange(selectedDate);
+
+  const [{ data: tables }, { data: reservations }, { data: serviceHours }] = await Promise.all([
+    supabase.from("tables").select("*").eq("restaurant_id", restaurant.id).order("number"),
+    supabase
+      .from("reservations")
+      .select("*")
+      .eq("restaurant_id", restaurant.id)
+      .gte("start_time", selected.start)
+      .lt("start_time", selected.end)
+      .order("start_time"),
+    supabase.from("service_hours").select("*").eq("restaurant_id", restaurant.id),
+  ]);
+
+  return (
+    <div className="flex flex-col gap-3">
+      <h1 className="text-xl font-semibold">Reservas</h1>
+      <ReservationsClient
+        restaurantId={restaurant.id}
+        tables={tables ?? []}
+        initialReservations={reservations ?? []}
+        serviceHours={serviceHours ?? []}
+        maxPartySize={settings.max_party_size}
+        defaultDurationMinutes={settings.default_reservation_duration_minutes}
+        defaultView={settings.default_view}
+        selectedDateIso={isoDate(selectedDate)}
+        dayStart={selected.start}
+        dayEnd={selected.end}
+        highlightId={params.id ?? null}
+      />
+    </div>
+  );
 }

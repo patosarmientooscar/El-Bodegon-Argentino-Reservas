@@ -83,3 +83,42 @@ export const TABLE_STATUS_LABEL: Record<TableStatus, string> = {
   occupied: "Ocupada",
   blocked: "Bloqueada",
 };
+
+/** Ventana del plano de Home: una mesa se pinta "reservada" si alguien llega en las próximas 2 h. */
+export const SERVICE_UPCOMING_MINUTES = 120;
+
+/**
+ * Estado de mesa para el plano de Home durante el servicio:
+ * - ocupada (rojo): solo si la reserva está marcada "Ha llegado" (seated) y no ha terminado;
+ * - reservada (ámbar): reserva confirmada que llega en las próximas 2 h (o que ya debía
+ *   haber llegado y no se ha marcado), o cualquier pendiente de hoy que no haya terminado;
+ * - libre (verde): el resto. Las bloqueadas se respetan.
+ */
+export function computeServiceTableStatus(
+  table: TableRow,
+  reservations: ReservationRow[],
+  now: Date,
+): TableStatusResult {
+  if (table.status_override === "blocked") {
+    return { status: "blocked", activeReservation: null, upcomingReservation: null };
+  }
+
+  const nowMs = now.getTime();
+  const notEnded = (r: ReservationRow) => nowMs < reservationEnd(r);
+  const tableReservations = reservations.filter((r) => r.table_id === table.id && notEnded(r));
+
+  const seated = tableReservations.find((r) => r.status === "seated");
+  if (seated) return { status: "occupied", activeReservation: seated, upcomingReservation: null };
+
+  const windowMs = SERVICE_UPCOMING_MINUTES * 60_000;
+  const upcoming = tableReservations
+    .filter(
+      (r) =>
+        r.status === "pending" ||
+        (r.status === "confirmed" && new Date(r.start_time).getTime() - nowMs <= windowMs),
+    )
+    .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())[0];
+  if (upcoming) return { status: "reserved", activeReservation: null, upcomingReservation: upcoming };
+
+  return { status: "available", activeReservation: null, upcomingReservation: null };
+}

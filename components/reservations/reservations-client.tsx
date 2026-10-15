@@ -51,7 +51,7 @@ export function ReservationsClient({
   const [filters, setFilters] = useState<ReservationFilters>(EMPTY_FILTERS);
   const [selectedId, setSelectedId] = useState<string | null>(highlightId);
 
-  // Al pulsar una próxima llegada (/home?id=…) la página no se vuelve a montar:
+  // Si cambia ?id= sin que la página se vuelva a montar,
   // abre aquí el detalle de la reserva indicada.
   useEffect(() => {
     if (highlightId) setSelectedId(highlightId);
@@ -161,7 +161,7 @@ export function ReservationsClient({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <DateNav
           selectedDateIso={selectedDateIso}
-          onChange={(iso) => router.push(`/home?date=${iso}`, { scroll: false })}
+          onChange={(iso) => router.push(`/reservations?date=${iso}`, { scroll: false })}
         />
         <div className="flex items-center gap-2">
           <Tabs value={view} onValueChange={(v) => changeView(v as DefaultView)}>
@@ -188,6 +188,23 @@ export function ReservationsClient({
           />
         </div>
       </div>
+
+      <ReservationFormDialog
+        restaurantId={restaurantId}
+        tables={tables}
+        maxPartySize={maxPartySize}
+        defaultDurationMinutes={defaultDurationMinutes}
+        defaultDate={new Date(`${selectedDateIso}T00:00:00`)}
+        trigger={
+          <Button
+            size="icon"
+            aria-label="Nueva reserva"
+            className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] right-4 z-30 size-14 rounded-full shadow-lg sm:hidden"
+          >
+            <Plus className="size-7" />
+          </Button>
+        }
+      />
 
       <FilterBar filters={filters} onChange={setFilters} />
 
@@ -248,7 +265,7 @@ export function ReservationsClient({
           if (open) return;
           setSelectedId(null);
           // Quita ?id= de la URL para que la misma llegada se pueda volver a abrir.
-          if (highlightId) router.replace(`/home?date=${selectedDateIso}`, { scroll: false });
+          if (highlightId) router.replace(`/reservations?date=${selectedDateIso}`, { scroll: false });
         }}
       />
 

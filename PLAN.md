@@ -1,7 +1,7 @@
 # Plan — Mejoras del panel y notificaciones (El Bodegón Argentino)
 
 Producción: https://el-bodegon-argentino-reservas.vercel.app (Vercel despliega `main`).
-Ramas: `mejoras-panel-notificaciones` (Fase 1, ya en `main`) · `fase-2-push` (Fase 2, sin subir).
+Ramas: `mejoras-panel-notificaciones` (Fase 1) · `fase-2-push` y `fix-avisos-movil` (Fase 2), todas ya en `main` · `fase-3-hoy` (Fase 3, **sin subir**).
 
 ## Cómo está montado (resumen)
 
@@ -13,7 +13,7 @@ Ramas: `mejoras-panel-notificaciones` (Fase 1, ya en `main`) · `fase-2-push` (F
 - **Seguridad**: RLS en todas las tablas, filtrada por el restaurante del usuario
   (`current_restaurant_id()`). La web pública y el bot usan funciones `security definer`
   con la clave pública, que nunca devuelven datos de otros clientes.
-- **Panel**: Next.js 15 App Router; Home (plano + reservas del día con Realtime), Ajustes.
+- **Panel**: Next.js 15 App Router; Hoy (`/home`), Reservas (`/reservations`), Ajustes. Tema carbón + latón.
   Acceso directo opcional con `AUTO_LOGIN_EMAIL/PASSWORD` (sin pantalla de login).
 - **Bot de WhatsApp** (carpeta `chatbot/`): en la base de datos está la versión 1
   (`bot_create_reservation`, `bot_busy_tables`). La v2 (`whatsapp_outbox`, `bot_v2_*`)
@@ -27,10 +27,10 @@ Ramas: `mejoras-panel-notificaciones` (Fase 1, ya en `main`) · `fase-2-push` (F
 | Fase | Estado |
 | --- | --- |
 | 1. Avisos por Telegram | Código en `main`, **apagado** (ver "Futuro / opcional") |
-| 2. App en el móvil + notificaciones push | ✅ Hecha y probada en local (rama `fase-2-push`) · ⏳ falta activarla |
-| 3. Home "Hoy" mobile-first | Pendiente |
+| 2. App en el móvil + notificaciones push | ✅ En producción |
+| 3. Home "Hoy" mobile-first | ✅ Hecha y probada en local (rama `fase-3-hoy`) · ⏳ falta "push it" |
 | 4. Login | Pendiente (la fuente sale en Times y el color es el morado genérico) |
-| 5. Ajustes | Pendiente |
+| 5. Ajustes | Pendiente (el personal ya puede activar los avisos: hecho en Fase 3) |
 
 ## Sistema de avisos (común a todos los canales)
 
@@ -105,6 +105,45 @@ Deshacer: `PEGAR_AVISOS_DESHACER.sql`. Sustituye al SQL de Telegram, que nunca s
 - `tsc`, `eslint` y `next build` sin errores.
 - **Sin probar todavía** (necesita las claves y la base de datos real): envío real a un
   móvil, Aceptar/Rechazar desde la notificación y borrado de caducadas.
+
+## Fase 3 — Pantalla "Hoy" (móvil primero)
+
+### Qué hace
+- **Hoy** (`/home`, `components/today/`): selector Hoy / Mañana / Elegir fecha (`?date=`);
+  3 contadores (Pendientes —en ámbar si hay—, Confirmadas, Comensales); aviso si hay
+  pendientes **otros días** con enlace al primero.
+- **Lista**: primero las pendientes con **Aceptar** / **Rechazar** (pide confirmación); luego el
+  resto por hora; canceladas y "no vino" plegadas al final. Tarjeta: hora grande, nombre,
+  personas, mesa, estado (texto + icono + color), origen con icono, notas destacadas,
+  **Llamar** (tel:) y **WhatsApp** (wa.me), **Ha llegado** (seated) y **No vino** (no_show).
+  Tocar la tarjeta abre el detalle (el mismo que abre la notificación: `/home?date=…&id=…`).
+- **Cambios al momento** (optimista): se ven antes de que conteste el servidor; si falla,
+  vuelven atrás con aviso. Solo cambia si la reserva sigue en el estado que se ve
+  (`.eq("status", anterior)`), por si otro móvil la tocó. Aviso con **Deshacer**.
+- **Realtime**: entradas, cambios y cancelaciones aparecen solas (aviso en pantalla).
+- **Plano** (`floor-plan.tsx`, `computeServiceTableStatus`): verde libre · ámbar reservada en
+  las próximas 2 h o pendiente · rojo ocupada (solo si está "Ha llegado"). Número + icono en
+  cada mesa y hora de llegada debajo; al tocarla, quién viene, a qué hora y cuántos. En móvil va
+  debajo de la lista (enlace "Ver plano"); en ordenador, a la derecha. Solo para hoy.
+- **Navegación móvil**: menú fijo abajo Hoy / Reservas / Ajustes con contador de pendientes
+  (de hoy en adelante, Realtime, `pending-provider.tsx`). En ordenador, barra lateral con lo mismo.
+- **Reservas** (`/reservations`): la lista/rejilla con filtros que antes iba debajo de Home.
+- **Personal (staff)**: Ajustes muestra solo "Avisos en el móvil" (RLS de `push_subscriptions`
+  ya lo permitía).
+- **Tema**: colores de El Bodegón solo en el panel (`[data-panel-theme]` en `globals.css`);
+  login y reserva pública sin cambios. Zonas táctiles ≥ 44 px, texto principal ≥ 16 px,
+  zona segura del iPhone (`viewportFit: "cover"`).
+- Sin cambios de base de datos. Se quitaron `home-client`, `kpi-card`, `next-arrivals`,
+  `notifications-bell` y `lib/reservations/kpis.ts` (sustituidos por la pantalla nueva).
+
+### Probado (en local, con datos de ejemplo y Supabase simulado; sin tocar la base real)
+- 375 px y 1440 px: sin scroll lateral, ningún botón < 44 px, menú de abajo solo en móvil.
+- Aceptar se ve al instante; con la red fallando vuelve atrás y avisa; Rechazar pide confirmación.
+- Realtime: reserva nueva aparece sola en pendientes; cancelación desde otro móvil la quita.
+- Plano, detalle, vacío, Reservas (lista/rejilla), Ajustes (admin y staff) con el tema nuevo.
+- `tsc`, `eslint` y `next build` sin errores.
+- **Falta en real** (necesita la sesión del panel): aceptar/rechazar con datos reales y ver
+  el contador de la pestaña con Realtime real.
 
 ## Futuro / opcional — Avisos por Telegram (apagado)
 

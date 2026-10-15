@@ -40,9 +40,9 @@ import {
 const STATUS_OPTIONS: { value: ReservationStatus; label: string }[] = [
   { value: "pending", label: "Pendiente" },
   { value: "confirmed", label: "Confirmada" },
-  { value: "seated", label: "Sentada" },
+  { value: "seated", label: "Ha llegado" },
   { value: "cancelled", label: "Cancelada" },
-  { value: "no_show", label: "No-show" },
+  { value: "no_show", label: "No vino" },
 ];
 
 export function ReservationDetailSheet({
@@ -149,7 +149,7 @@ export function ReservationDetailSheet({
               </Select>
             </div>
 
-            <SheetFooter className="mt-auto flex-row gap-2 px-0">
+            <SheetFooter className="mt-auto flex-col gap-2 px-0 sm:flex-row">
               <Button
                 variant="outline"
                 className="flex-1"

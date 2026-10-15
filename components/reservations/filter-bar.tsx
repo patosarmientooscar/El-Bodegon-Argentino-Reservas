@@ -18,9 +18,9 @@ import type { Turno } from "@/lib/reservations/service-hours";
 const STATUS_OPTIONS: { value: ReservationStatus; label: string }[] = [
   { value: "pending", label: "Pendiente" },
   { value: "confirmed", label: "Confirmada" },
-  { value: "seated", label: "Sentada" },
+  { value: "seated", label: "Ha llegado" },
   { value: "cancelled", label: "Cancelada" },
-  { value: "no_show", label: "No-show" },
+  { value: "no_show", label: "No vino" },
 ];
 
 const TURNO_OPTIONS: { value: Turno; label: string }[] = [

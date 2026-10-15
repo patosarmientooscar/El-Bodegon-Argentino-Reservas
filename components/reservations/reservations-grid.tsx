@@ -162,7 +162,7 @@ export function ReservationsGrid({
         </div>
 
         {unassigned.length > 0 && (
-          <div className="flex border-b bg-amber-50/40" style={{ height: ROW_HEIGHT }}>
+          <div className="flex border-b bg-amber-400/10" style={{ height: ROW_HEIGHT }}>
             <div style={{ width: LABEL_WIDTH }} className="flex shrink-0 items-center border-r px-2 text-xs font-medium text-muted-foreground">
               Sin mesa
             </div>

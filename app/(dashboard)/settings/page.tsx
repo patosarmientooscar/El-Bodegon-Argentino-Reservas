@@ -1,14 +1,23 @@
 import { getDashboardContext } from "@/lib/dashboard/context";
 import { SettingsClient } from "@/components/settings/settings-client";
+import { PushNotificationsCard } from "@/components/settings/push-notifications-card";
 
 export default async function SettingsPage() {
   const { supabase, profile, restaurant, settings } = await getDashboardContext();
 
+  // Personal (staff): solo puede activar los avisos en su propio móvil.
   if (profile.role !== "admin") {
     return (
-      <div className="flex h-64 flex-col items-center justify-center gap-1 rounded-lg border border-dashed text-center text-sm text-muted-foreground">
-        <p className="font-medium text-foreground">Ajustes es solo para administradores.</p>
-        <p>Habla con un admin del restaurante si necesitas cambiar algo aquí.</p>
+      <div className="flex max-w-2xl flex-col gap-4">
+        <h1 className="text-xl font-semibold">Ajustes</h1>
+        <PushNotificationsCard
+          restaurantId={restaurant.id}
+          currentUserId={profile.id}
+          vapidPublicKey={process.env.VAPID_PUBLIC_KEY ?? null}
+        />
+        <p className="rounded-lg border border-dashed px-4 py-3 text-sm text-muted-foreground">
+          El resto de Ajustes (mesas, turnos, reglas, usuarios…) es solo para administradores.
+        </p>
       </div>
     );
   }

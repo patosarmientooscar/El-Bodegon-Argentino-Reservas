@@ -135,6 +135,46 @@
   --table-blocked: #6b7280;
 }
 
+/* Panel de El Bodegón (Home, Reservas, Ajustes): carbón + latón como el icono
+   de la app. Solo aplica si la página lleva [data-panel-theme] (layout del
+   panel); login y la reserva pública siguen con :root. Con :has() también lo
+   heredan los diálogos y menús, que se pintan fuera del layout. */
+html:has([data-panel-theme]) {
+  color-scheme: dark;
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --background: #1a1714;
+  --foreground: #f3ede3;
+  --card: #231f1b;
+  --card-foreground: #f3ede3;
+  --popover: #272220;
+  --popover-foreground: #f3ede3;
+  --primary: #b08d57;
+  --primary-foreground: #1a1714;
+  --secondary: #2e2823;
+  --secondary-foreground: #f3ede3;
+  --muted: #2e2823;
+  --muted-foreground: #b9ad9c;
+  --accent: #332c26;
+  --accent-foreground: #f3ede3;
+  --destructive: #e5534b;
+  --border: rgb(243 237 227 / 0.12);
+  --input: rgb(243 237 227 / 0.18);
+  --ring: #b08d57;
+  --sidebar: #15120f;
+  --sidebar-foreground: #f3ede3;
+  --sidebar-primary: #b08d57;
+  --sidebar-primary-foreground: #1a1714;
+  --sidebar-accent: #2e2823;
+  --sidebar-accent-foreground: #f3ede3;
+  --sidebar-border: rgb(243 237 227 / 0.1);
+  --sidebar-ring: #b08d57;
+
+  --table-available: #4ade80;
+  --table-reserved: #fbbf24;
+  --table-occupied: #f87171;
+  --table-blocked: #8a8178;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

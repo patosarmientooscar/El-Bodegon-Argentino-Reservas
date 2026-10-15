@@ -1,3 +1,5 @@
+import { Ban, Check, Clock, Users } from "lucide-react";
+
 import { cn } from "@/lib/utils";
 import { TableStatusDot } from "@/components/dashboard/table-status-dot";
 import type { TableStatus } from "@/lib/reservations/status";
@@ -9,12 +11,12 @@ const SHAPE_CLASS: Record<TableShapeKind, string> = {
   rectangular: "rounded-lg w-20 h-12",
 };
 
-// Plano de Home en móvil: comparte ancho con las próximas llegadas, así que
-// las mesas encogen por debajo de sm y recuperan su tamaño desde sm.
+// Plano de Home: en móvil ocupa todo el ancho (debajo de la lista), así que
+// las mesas son algo más pequeñas que en ordenador.
 const RESPONSIVE_SHAPE_CLASS: Record<TableShapeKind, string> = {
-  round: "rounded-full size-8 text-xs sm:size-14 sm:text-base",
-  square: "rounded-md size-8 text-xs sm:rounded-lg sm:size-14 sm:text-base",
-  rectangular: "rounded-md w-11 h-7 text-xs sm:rounded-lg sm:w-20 sm:h-12 sm:text-base",
+  round: "rounded-full size-10 text-sm sm:size-14 sm:text-base",
+  square: "rounded-md size-10 text-sm sm:rounded-lg sm:size-14 sm:text-base",
+  rectangular: "rounded-md w-12 h-9 text-sm sm:rounded-lg sm:w-20 sm:h-12 sm:text-base",
 };
 
 const STATUS_CLASS: Record<TableStatus, string> = {
@@ -24,12 +26,29 @@ const STATUS_CLASS: Record<TableStatus, string> = {
   blocked: "bg-table-blocked/10 border-table-blocked text-table-blocked",
 };
 
+// Icono de estado (plano de Home): libre ✓, reservada reloj, ocupada personas, bloqueada prohibido.
+const STATUS_ICON: Record<TableStatus, typeof Check> = {
+  available: Check,
+  reserved: Clock,
+  occupied: Users,
+  blocked: Ban,
+};
+
+const STATUS_ICON_BG: Record<TableStatus, string> = {
+  available: "bg-table-available",
+  reserved: "bg-table-reserved",
+  occupied: "bg-table-occupied",
+  blocked: "bg-table-blocked",
+};
+
 export function TableShape({
   number,
   shape,
   status,
   selected,
   responsive,
+  statusIcon,
+  caption,
   className,
 }: {
   number: number;
@@ -37,8 +56,13 @@ export function TableShape({
   status: TableStatus;
   selected?: boolean;
   responsive?: boolean;
+  /** Icono de estado en la esquina (en vez del punto). */
+  statusIcon?: boolean;
+  /** Texto corto debajo de la mesa, p. ej. la hora de llegada. */
+  caption?: string;
   className?: string;
 }) {
+  const Icon = STATUS_ICON[status];
   return (
     <div
       className={cn(
@@ -51,7 +75,24 @@ export function TableShape({
       )}
     >
       <span className="text-foreground">{number}</span>
-      <TableStatusDot status={status} className="absolute -right-1 -top-1 border border-background" />
+      {statusIcon ? (
+        <span
+          aria-hidden
+          className={cn(
+            "absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full border-2 border-background text-background",
+            STATUS_ICON_BG[status],
+          )}
+        >
+          <Icon className="size-3" strokeWidth={3} />
+        </span>
+      ) : (
+        <TableStatusDot status={status} className="absolute -right-1 -top-1 border border-background" />
+      )}
+      {caption && (
+        <span className="absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap rounded bg-background/80 px-1 text-[11px] font-semibold leading-4 text-table-reserved">
+          {caption}
+        </span>
+      )}
     </div>
   );
 }
