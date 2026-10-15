@@ -236,7 +236,7 @@ export function TodayClient({
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">{isToday ? "Hoy" : "Reservas del día"}</h1>
+          <h1 className="text-2xl font-semibold short:text-xl">{isToday ? "Hoy" : "Reservas del día"}</h1>
           <p className="text-base text-muted-foreground first-letter:uppercase">
             {formatDateLong(new Date(`${selectedDateIso}T00:00:00`))}
             {isToday && (
@@ -261,11 +261,11 @@ export function TodayClient({
         <a
           href="#pendientes"
           className={cn(
-            "flex flex-col rounded-xl border bg-card p-3 sm:p-4",
+            "flex flex-col rounded-xl border bg-card p-3 sm:p-4 short:!px-3 short:!py-2",
             pending.length > 0 && "border-amber-400/70 bg-amber-400/15 text-amber-200",
           )}
         >
-          <span className="flex items-center gap-1.5 text-3xl font-bold tabular-nums leading-none">
+          <span className="flex items-center gap-1.5 text-3xl font-bold tabular-nums leading-none short:text-2xl">
             {pending.length}
             {pending.length > 0 && <span aria-hidden className="size-2.5 animate-pulse rounded-full bg-amber-400" />}
           </span>
@@ -273,15 +273,15 @@ export function TodayClient({
             Pendientes
           </span>
         </a>
-        <div className="flex flex-col rounded-xl border bg-card p-3 sm:p-4">
-          <span className="text-3xl font-bold tabular-nums leading-none">{active.length}</span>
+        <div className="flex flex-col rounded-xl border bg-card p-3 sm:p-4 short:!px-3 short:!py-2">
+          <span className="text-3xl font-bold tabular-nums leading-none short:text-2xl">{active.length}</span>
           <span className="mt-1.5 text-sm font-medium text-muted-foreground">
             Confirmadas
             {arrived > 0 && <span className="block text-xs font-normal">{arrived} ya {arrived === 1 ? "ha" : "han"} llegado</span>}
           </span>
         </div>
-        <div className="flex flex-col rounded-xl border bg-card p-3 sm:p-4">
-          <span className="text-3xl font-bold tabular-nums leading-none">{guests}</span>
+        <div className="flex flex-col rounded-xl border bg-card p-3 sm:p-4 short:!px-3 short:!py-2">
+          <span className="text-3xl font-bold tabular-nums leading-none short:text-2xl">{guests}</span>
           <span className="mt-1.5 text-sm font-medium text-muted-foreground">{isToday ? "Comensales hoy" : "Comensales"}</span>
         </div>
       </div>
@@ -322,7 +322,7 @@ export function TodayClient({
 
       <div
         className={cn(
-          "grid items-start gap-6 transition-opacity lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]",
+          "grid items-start gap-6 transition-opacity lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] short:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] short:gap-4",
           navigating && "opacity-50",
         )}
       >
@@ -342,7 +342,7 @@ export function TodayClient({
                 {pending.length > 0 ? "Resto de reservas" : "Reservas"} ({active.length})
               </h2>
               {isToday && tables.length > 0 && (
-                <a href="#plano" className="flex min-h-11 items-center gap-1.5 px-1 text-base text-primary lg:hidden">
+                <a href="#plano" className="flex min-h-11 items-center gap-1.5 px-1 text-base text-primary lg:hidden short:hidden">
                   <MapIcon className="size-4" /> Ver plano
                 </a>
               )}
@@ -372,7 +372,7 @@ export function TodayClient({
           )}
         </div>
 
-        <section id="plano" className="flex scroll-mt-4 flex-col gap-2 lg:sticky lg:top-4">
+        <section id="plano" className="flex scroll-mt-4 flex-col gap-2 lg:sticky lg:top-4 short:sticky short:top-2">
           <h2 className="text-lg font-semibold">
             Plano de mesas
             {isToday && (
@@ -395,7 +395,7 @@ export function TodayClient({
         <Button
           size="icon"
           aria-label="Nueva reserva"
-          className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] right-4 z-30 size-14 rounded-full shadow-lg md:hidden"
+          className="fixed right-[max(1rem,env(safe-area-inset-right))] bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-30 size-14 rounded-full shadow-lg md:hidden short:bottom-4"
         >
           <Plus className="size-7" />
         </Button>,

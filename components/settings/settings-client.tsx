@@ -63,19 +63,19 @@ export function SettingsClient({
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-xl font-semibold">Ajustes</h1>
-      <Tabs value={tab} onValueChange={setTab} orientation="vertical" className="flex-col items-stretch gap-4 md:flex-row md:items-start">
-        {/* Móvil: fila de botones que se desliza; ordenador: columna a la izquierda. */}
+      <Tabs value={tab} onValueChange={setTab} orientation="vertical" className="flex-col items-stretch gap-4 lg:flex-row lg:items-start">
+        {/* Móvil y tablet en vertical: fila de botones que se desliza; pantallas anchas: columna a la izquierda. */}
         <TabsList
           variant="line"
-          className="-mx-4 !h-auto w-[calc(100%+2rem)] shrink-0 !flex-row justify-start gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:w-48 md:!flex-col md:items-stretch md:overflow-visible md:px-0"
+          className="-mx-4 !h-auto w-[calc(100%+2rem)] shrink-0 !flex-row justify-start gap-2 overflow-x-auto px-4 pb-1 lg:mx-0 lg:w-48 lg:!flex-col lg:items-stretch lg:overflow-visible lg:px-0"
         >
           {SETTINGS_TABS.map((t) => (
             <TabsTrigger
               key={t.value}
               value={t.value}
               className={cn(
-                "!h-11 !w-auto shrink-0 grow-0 gap-2 rounded-full border px-4 text-base md:!w-full data-[state=active]:border-primary data-[state=active]:bg-primary/15 data-[state=active]:text-primary",
-                "md:justify-start md:rounded-md md:border-transparent",
+                "!h-11 !w-auto shrink-0 grow-0 gap-2 rounded-full border px-4 text-base lg:!w-full data-[state=active]:border-primary data-[state=active]:bg-primary/15 data-[state=active]:text-primary",
+                "lg:justify-start lg:rounded-md lg:border-transparent",
               )}
             >
               <t.icon className="size-4" />
@@ -84,7 +84,7 @@ export function SettingsClient({
           ))}
         </TabsList>
 
-        <div className="w-full min-w-0 flex-1 md:max-w-3xl">
+        <div className="w-full min-w-0 flex-1 lg:max-w-3xl">
           <TabsContent value="online">
             <OnlineTab settings={settings} restaurantId={restaurant.id} phone={restaurant.phone} pauseSupported={features.pause} />
           </TabsContent>

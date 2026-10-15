@@ -36,16 +36,20 @@ export default async function DashboardLayout({
           role={profile.role}
           canSignOut={!autoLoginEnabled()}
         />
-        <SidebarInset>
-          <header className="flex min-h-14 items-center gap-2 border-b px-4 pt-[env(safe-area-inset-top)]">
+        {/* min-w-0: que el contenido encoja y no se salga por la derecha (tablet). */}
+        <SidebarInset className="min-w-0">
+          {/* Móvil en horizontal (short): sin cabecera, para ganar altura. */}
+          <header className="flex min-h-14 items-center gap-2 border-b pt-[env(safe-area-inset-top)] pr-[max(1rem,env(safe-area-inset-right))] pl-[max(1rem,env(safe-area-inset-left))] short:hidden">
             <SidebarTrigger className="hidden md:inline-flex" />
             <Separator orientation="vertical" className="hidden h-5 md:block" />
             <span className="text-base font-semibold text-primary md:text-sm md:font-medium md:text-foreground">
               {restaurant.name}
             </span>
           </header>
-          {/* En móvil, hueco abajo para el menú fijo. */}
-          <div className="flex-1 p-4 pb-[calc(9.5rem+env(safe-area-inset-bottom))] md:pb-4">{children}</div>
+          {/* Móvil: hueco abajo para el menú fijo. En horizontal, el menú va a la izquierda. */}
+          <div className="flex-1 p-4 pb-[calc(9.5rem+env(safe-area-inset-bottom))] pr-[max(1rem,env(safe-area-inset-right))] pl-[max(1rem,env(safe-area-inset-left))] md:pb-4 short:!pb-[max(1rem,env(safe-area-inset-bottom))] short:!pl-[calc(5.5rem+env(safe-area-inset-left))]">
+            {children}
+          </div>
         </SidebarInset>
         <MobileTabBar />
         <UpdateChecker />

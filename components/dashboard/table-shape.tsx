@@ -11,12 +11,12 @@ const SHAPE_CLASS: Record<TableShapeKind, string> = {
   rectangular: "rounded-lg w-20 h-12",
 };
 
-// Plano de Home: en móvil ocupa todo el ancho (debajo de la lista), así que
-// las mesas son algo más pequeñas que en ordenador.
+// Plano de Home: en móvil (vertical u horizontal) las mesas son algo más
+// pequeñas que en ordenador.
 const RESPONSIVE_SHAPE_CLASS: Record<TableShapeKind, string> = {
-  round: "rounded-full size-10 text-sm sm:size-14 sm:text-base",
-  square: "rounded-md size-10 text-sm sm:rounded-lg sm:size-14 sm:text-base",
-  rectangular: "rounded-md w-12 h-9 text-sm sm:rounded-lg sm:w-20 sm:h-12 sm:text-base",
+  round: "rounded-full size-10 text-sm sm:size-14 sm:text-base short:!size-10 short:!text-sm",
+  square: "rounded-md size-10 text-sm sm:rounded-lg sm:size-14 sm:text-base short:!size-10 short:!text-sm",
+  rectangular: "rounded-md w-12 h-9 text-sm sm:rounded-lg sm:w-20 sm:h-12 sm:text-base short:!w-12 short:!h-9 short:!text-sm",
 };
 
 const STATUS_CLASS: Record<TableStatus, string> = {

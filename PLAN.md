@@ -30,7 +30,8 @@ Ramas: `mejoras-panel-notificaciones` (Fase 1) · `fase-2-push` y `fix-avisos-mo
 | 2. App en el móvil + notificaciones push | ✅ En producción |
 | 3. Home "Hoy" mobile-first | ✅ En producción |
 | 4. Login | ✅ En producción (plantilla de email: necesita SMTP propio) |
-| 5. Ajustes | ✅ Hecha · ⏳ pegar `PEGAR_AJUSTES.sql` en Supabase |
+| 5. Ajustes | ✅ En producción (SQL pegado) |
+| Extra: uso en horizontal | ✅ Hecho en local (rama `horizontal`) · ⏳ falta "push it" |
 
 ## Sistema de avisos (común a todos los canales)
 
@@ -241,6 +242,24 @@ Copia de `supabase/migrations/20261020120000_ajustes_reservas_online.sql`. Sin s
 - SQL: sintaxis comprobada con el parser oficial de PostgreSQL (libpg-query); no se ha podido
   ejecutar contra la base real (lo pega el dueño).
 - `tsc`, `eslint`, `next build` sin errores.
+
+## Uso en horizontal (móvil y tablet)
+
+Rama `horizontal`.
+- `app/manifest.ts`: `orientation: "any"` (antes `portrait`: la app instalada no giraba). En Android
+  el cambio llega cuando Chrome actualiza la app instalada (puede tardar un día) o al reinstalarla.
+- Variante `short` en `globals.css` = móvil en horizontal (`orientation: landscape` y alto ≤ 540 px;
+  las tablets no entran). En ese caso: sin cabecera ni barra lateral grande; el menú de abajo pasa a
+  ser una columna de iconos a la izquierda (`mobile-tab-bar.tsx`); "Hoy" pone lista y plano lado a
+  lado (plano fijo, 4:3, mesas pequeñas) y los contadores son más compactos; el login va en dos
+  columnas (marca | formulario).
+- Ventanas (nueva reserva, confirmaciones): alto máximo de pantalla con desplazamiento
+  (`ui/dialog.tsx`, `ui/alert-dialog.tsx`).
+- Zona segura del iPhone a los lados (muesca en horizontal) en cabecera y contenido.
+- Tablet vertical: Ajustes usa la fila de botones (la columna de pestañas, desde `lg`), y
+  `SidebarInset` con `min-w-0` para que nada se salga por la derecha.
+- Probado con capturas en 390×844, 844×390, 667×375, 820×1180 y 1180×820 (Hoy, Ajustes, login,
+  ventana de nueva reserva): sin desplazamiento lateral; `tsc`, `eslint`, `next build` OK.
 
 ## Futuro / opcional — Avisos por Telegram (apagado)
 

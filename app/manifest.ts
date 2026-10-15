@@ -10,7 +10,8 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: "/home",
     scope: "/",
     display: "standalone",
-    orientation: "portrait",
+    // Gira con el móvil o la tablet (antes solo vertical).
+    orientation: "any",
     background_color: "#1A1714",
     theme_color: "#1A1714",
     icons: [

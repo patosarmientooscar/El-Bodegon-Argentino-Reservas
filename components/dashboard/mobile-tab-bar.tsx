@@ -13,7 +13,11 @@ const TABS = [
   { href: "/settings", label: "Ajustes", icon: Settings },
 ];
 
-/** Menú fijo abajo, solo en móvil (en ordenador sigue la barra lateral). */
+/**
+ * Menú del móvil: fijo abajo en vertical y columna a la izquierda cuando el
+ * móvil se pone en horizontal (variante `short`). En ordenador y tablet sigue
+ * la barra lateral.
+ */
 export function MobileTabBar() {
   const pathname = usePathname();
   const pendingCount = usePendingReservations().length;
@@ -21,9 +25,12 @@ export function MobileTabBar() {
   return (
     <nav
       aria-label="Menú principal"
-      className="fixed inset-x-0 bottom-0 z-40 border-t bg-sidebar/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+      className={cn(
+        "fixed inset-x-0 bottom-0 z-40 border-t bg-sidebar/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden",
+        "short:!flex short:inset-x-auto short:inset-y-0 short:left-0 short:w-[calc(5rem+env(safe-area-inset-left))] short:items-center short:border-t-0 short:border-r short:pb-0 short:pl-[env(safe-area-inset-left)]",
+      )}
     >
-      <ul className="grid grid-cols-3">
+      <ul className="grid grid-cols-3 short:w-full short:grid-cols-1 short:gap-2">
         {TABS.map((tab) => {
           const active = pathname === tab.href || pathname.startsWith(`${tab.href}/`);
           const showBadge = tab.href === "/home" && pendingCount > 0;
@@ -37,7 +44,12 @@ export function MobileTabBar() {
                   active ? "text-primary" : "text-muted-foreground hover:text-foreground",
                 )}
               >
-                {active && <span aria-hidden className="absolute inset-x-6 top-0 h-0.5 rounded-full bg-primary" />}
+                {active && (
+                  <span
+                    aria-hidden
+                    className="absolute inset-x-6 top-0 h-0.5 rounded-full bg-primary short:inset-x-auto short:inset-y-3 short:left-0 short:h-auto short:w-0.5"
+                  />
+                )}
                 <span className="relative">
                   <tab.icon className="size-6" />
                   {showBadge && (

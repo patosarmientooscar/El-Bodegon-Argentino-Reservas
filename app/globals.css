@@ -4,6 +4,9 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Móvil en horizontal: pantalla apaisada y baja (las tablets no entran). */
+@custom-variant short (@media (orientation: landscape) and (max-height: 540px));
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -173,6 +176,13 @@ html:has([data-panel-theme]) {
   --table-reserved: #fbbf24;
   --table-occupied: #f87171;
   --table-blocked: #8a8178;
+}
+
+/* Móvil en horizontal: sin barra lateral grande (se usa la columna de iconos). */
+@media (orientation: landscape) and (max-height: 540px) {
+  [data-slot="sidebar"].peer {
+    display: none !important;
+  }
 }
 
 @layer base {

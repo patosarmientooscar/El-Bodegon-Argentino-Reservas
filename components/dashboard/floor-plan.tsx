@@ -94,7 +94,7 @@ export function FloorPlanCanvas({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="relative aspect-square w-full overflow-hidden rounded-lg border bg-muted/30 [--label-gap:2.25rem] sm:aspect-16/9 sm:[--label-gap:3rem]">
+      <div className="relative aspect-square w-full overflow-hidden rounded-lg border bg-muted/30 [--label-gap:2.25rem] sm:aspect-16/9 sm:[--label-gap:3rem] short:!aspect-[4/3] short:![--label-gap:2.25rem]">
         {SHAPE_ORDER.map((shape) => {
           const group = tables.filter((t) => t.shape === shape);
           if (group.length === 0) return null;

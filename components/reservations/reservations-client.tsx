@@ -199,7 +199,7 @@ export function ReservationsClient({
           <Button
             size="icon"
             aria-label="Nueva reserva"
-            className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] right-4 z-30 size-14 rounded-full shadow-lg sm:hidden"
+            className="fixed right-[max(1rem,env(safe-area-inset-right))] bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-30 size-14 rounded-full shadow-lg sm:hidden short:bottom-4"
           >
             <Plus className="size-7" />
           </Button>
