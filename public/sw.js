@@ -20,21 +20,28 @@ self.addEventListener("push", (event) => {
     data = { title: "Reservas El Bodegón", body: event.data ? event.data.text() : "" };
   }
 
-  const options = {
+  const title = data.title || "Reservas El Bodegón";
+  const basic = {
     body: data.body || "",
     icon: ICON,
     badge: BADGE,
     tag: data.tag || undefined,
-    renotify: Boolean(data.tag),
     data: { url: data.url || "/home", reservationId: data.reservationId || null },
-    actions: data.decision
-      ? [
-          { action: "accept", title: "✅ Aceptar" },
-          { action: "reject", title: "❌ Rechazar" },
-        ]
-      : [],
   };
-  event.waitUntil(self.registration.showNotification(data.title || "Reservas El Bodegón", options));
+  // Botones solo donde existen (Android/escritorio). iPhone no los admite y
+  // puede negarse a mostrar una notificación que los lleve.
+  const canActions = typeof Notification !== "undefined" && (Notification.maxActions || 0) > 0;
+  const full = { ...basic, renotify: Boolean(data.tag) };
+  if (data.decision && canActions) {
+    full.actions = [
+      { action: "accept", title: "✅ Aceptar" },
+      { action: "reject", title: "❌ Rechazar" },
+    ];
+  }
+  // Si el móvil rechaza las opciones, se muestra igualmente en su forma más simple.
+  event.waitUntil(
+    self.registration.showNotification(title, full).catch(() => self.registration.showNotification(title, basic)),
+  );
 });
 
 async function openPanel(url) {

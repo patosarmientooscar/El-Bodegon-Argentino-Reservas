@@ -76,6 +76,7 @@ export async function sendPushToRestaurant(restaurantId: string, payload: PushPa
     const { error: delError } = await admin.from("push_subscriptions").delete().in("id", expired);
     if (delError) console.error("[push] borrar caducadas:", delError.message);
   }
+  console.log(`[push] "${payload.title}": enviada a ${sent} de ${subs?.length ?? 0} dispositivos${expired.length ? `, ${expired.length} caducadas borradas` : ""}`);
   return { sent, total: subs?.length ?? 0 };
 }
 
