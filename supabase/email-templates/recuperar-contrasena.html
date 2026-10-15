@@ -1,0 +1,24 @@
+<!--
+  Plantilla "Reset Password" de Supabase (Authentication → Emails → Reset Password).
+  Asunto recomendado: Cambia tu contraseña · El Bodegón Argentino
+  El enlace usa token_hash: funciona aunque se abra en otro navegador o móvil.
+  Requiere que Site URL sea https://el-bodegon-argentino-reservas.vercel.app
+-->
+<div style="margin:0;padding:32px 16px;background:#1a1714;font-family:Helvetica,Arial,sans-serif;color:#f3ede3">
+  <div style="max-width:440px;margin:0 auto;background:#231f1b;border:1px solid #3a332c;border-radius:16px;padding:32px 28px;text-align:center">
+    <img src="https://el-bodegon-argentino-reservas.vercel.app/icons/icon-192.png" width="72" height="72" alt="El Bodegón" style="border-radius:14px" />
+    <p style="margin:16px 0 4px;font-size:12px;letter-spacing:3px;text-transform:uppercase;color:#b08d57;font-weight:bold">El Bodegón Argentino</p>
+    <h1 style="margin:0 0 12px;font-size:22px;color:#f3ede3">Cambia tu contraseña</h1>
+    <p style="margin:0 0 24px;font-size:16px;line-height:1.5;color:#b9ad9c">
+      Has pedido una contraseña nueva para el panel de reservas.<br />Pulsa el botón y elige una.
+    </p>
+    <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/nueva-contrasena"
+       style="display:inline-block;background:#b08d57;color:#1a1714;text-decoration:none;font-weight:bold;font-size:16px;padding:14px 28px;border-radius:10px">
+      Poner contraseña nueva
+    </a>
+    <p style="margin:24px 0 0;font-size:13px;line-height:1.5;color:#8a8178">
+      El enlace caduca en 1 hora y solo sirve una vez.<br />Si no lo has pedido tú, ignora este email: tu contraseña no cambia.
+    </p>
+  </div>
+  <p style="margin:16px 0 0;text-align:center;font-size:12px;color:#6b635b">Hecho por Evimes</p>
+</div>

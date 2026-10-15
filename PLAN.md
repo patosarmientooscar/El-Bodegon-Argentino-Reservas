@@ -1,7 +1,7 @@
 # Plan — Mejoras del panel y notificaciones (El Bodegón Argentino)
 
 Producción: https://el-bodegon-argentino-reservas.vercel.app (Vercel despliega `main`).
-Ramas: `mejoras-panel-notificaciones` (Fase 1) · `fase-2-push` y `fix-avisos-movil` (Fase 2), todas ya en `main` · `fase-3-hoy` (Fase 3, **sin subir**).
+Ramas: `mejoras-panel-notificaciones` (Fase 1) · `fase-2-push` y `fix-avisos-movil` (Fase 2), todas ya en `main` · `fase-3-hoy` (Fase 3), ya en `main` · `fase-4-login` (Fase 4, **sin subir**).
 
 ## Cómo está montado (resumen)
 
@@ -28,8 +28,8 @@ Ramas: `mejoras-panel-notificaciones` (Fase 1) · `fase-2-push` y `fix-avisos-mo
 | --- | --- |
 | 1. Avisos por Telegram | Código en `main`, **apagado** (ver "Futuro / opcional") |
 | 2. App en el móvil + notificaciones push | ✅ En producción |
-| 3. Home "Hoy" mobile-first | ✅ Hecha y probada en local (rama `fase-3-hoy`) · ⏳ falta "push it" |
-| 4. Login | Pendiente (la fuente sale en Times y el color es el morado genérico) |
+| 3. Home "Hoy" mobile-first | ✅ En producción |
+| 4. Login | ✅ Hecho y probado en local (rama `fase-4-login`) · ⏳ falta "push it" + configurar Supabase |
 | 5. Ajustes | Pendiente (el personal ya puede activar los avisos: hecho en Fase 3) |
 
 ## Sistema de avisos (común a todos los canales)
@@ -144,6 +144,50 @@ Deshacer: `PEGAR_AVISOS_DESHACER.sql`. Sustituye al SQL de Telegram, que nunca s
 - `tsc`, `eslint` y `next build` sin errores.
 - **Falta en real** (necesita la sesión del panel): aceptar/rechazar con datos reales y ver
   el contador de la pestaña con Realtime real.
+
+## Fase 4 — Login con la marca y cómodo en el móvil
+
+### Qué hace
+- **Letra**: `--font-sans` en `globals.css` se apuntaba a sí misma (`var(--font-sans)`) y todo
+  caía en Times. Ahora apunta a Geist (`--font-geist-sans`) en toda la app. La reserva pública
+  sigue con sus fuentes (Montserrat/Playfair).
+- **Login** (`app/login`, `components/auth/`): "B" dorada + "El Bodegón Argentino", "Panel de
+  reservas", colores del panel, "Hecho por Evimes". Campos y botón de 48 px con texto de 16 px
+  (el iPhone no hace zoom), `autocomplete`/`inputmode` para que el móvil rellene solo, ojo para
+  ver la contraseña, botón "Entrando…" bloqueado, errores en español (`lib/auth/errors.ts`).
+- **Sesión**: ya duraba. Las cookies de `@supabase/ssr` duran 400 días y el middleware renueva la
+  sesión en cada visita; el token de refresco de Supabase no caduca salvo que se active
+  "Time-box"/"Inactivity timeout" (no está). Con sesión, `/login` lleva a "Hoy". Sin sesión, el
+  panel manda a `/login?next=…` y, al entrar, vuelve a donde iba (p. ej. la reserva de un aviso).
+  Cuenta sin restaurante: aviso claro en vez de un bucle de redirecciones.
+- **"Mantener la sesión iniciada": no se ha puesto**. La sesión ya se mantiene siempre; desmarcarla
+  obligaría a reescribir cómo se guardan las cookies en el navegador, el servidor y el
+  middleware, y en la app instalada del iPhone una cookie "de sesión" se borra al cerrar la app.
+  Para salir basta "Cerrar sesión".
+- **¿Has olvidado la contraseña?** (`/recuperar` → email → `/auth/confirm` → `/nueva-contrasena`).
+  Mismo mensaje exista o no la cuenta. La plantilla en español y con la marca está en
+  `supabase/email-templates/recuperar-contrasena.html`; usa `token_hash`, así el enlace funciona
+  aunque se abra en otro navegador. (No hay Resend en el proyecto: el email sale de Supabase.)
+- Nota: en el iPhone, la app instalada guarda su sesión aparte de Safari: hay que entrar una vez
+  dentro de la app.
+
+### Configurar en Supabase (una vez)
+1. Authentication → URL Configuration: **Site URL** = `https://el-bodegon-argentino-reservas.vercel.app`;
+   en **Redirect URLs** añadir `https://el-bodegon-argentino-reservas.vercel.app/**`.
+2. Authentication → Emails → **Reset Password**: asunto "Cambia tu contraseña · El Bodegón
+   Argentino" y pegar el HTML de `supabase/email-templates/recuperar-contrasena.html`.
+3. Límite: el correo integrado de Supabase envía pocos emails por hora y **solo a emails del
+   equipo del proyecto de Supabase**. Para el personal hace falta un SMTP propio
+   (Authentication → Emails → SMTP Settings; p. ej. Resend) — pendiente de decidir.
+
+### Probado (en local, sin sesión real ni emails reales)
+- 375 px y 1440 px; letra Geist (antes Times); campos 48 px y 16 px; atributos de autocompletar.
+- Ojo, "Entrando…" bloqueado, "Email o contraseña incorrectos." (intento real fallido),
+  "Sin conexión…", cuenta sin restaurante, `/home?…` sin sesión → `/login?next=…`.
+- Recuperar (envío simulado): mensaje de enviado, `redirect_to` correcto; enlace falso →
+  "Ese enlace ha caducado…"; `/nueva-contrasena` sin enlace → "Enlace caducado".
+- `tsc`, `eslint`, `next build` sin errores.
+- **Falta en real**: entrar con tu cuenta y recibir el email de recuperación.
 
 ## Futuro / opcional — Avisos por Telegram (apagado)
 

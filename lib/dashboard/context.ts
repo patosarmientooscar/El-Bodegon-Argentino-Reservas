@@ -44,8 +44,10 @@ export const getDashboardContext = cache(async () => {
     .eq("id", user.id)
     .single();
 
+  // Cuenta sin restaurante: el login lo explica y cierra esa sesión (sin el
+  // ?error, /login volvería a mandar a /home y habría un bucle).
   if (!profile || !profile.restaurant_id || !profile.restaurants) {
-    redirect("/login");
+    redirect("/login?error=sin-perfil");
   }
 
   const { restaurant_settings: settingsRow, ...restaurant } = profile.restaurants;

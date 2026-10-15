@@ -41,7 +41,19 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!autoLoginEnabled()) return supabaseResponse;
+  if (!autoLoginEnabled()) {
+    const { pathname, search, searchParams } = request.nextUrl;
+    // Ya hay sesión: /login lleva directo a "Hoy" (salvo el aviso de cuenta sin restaurante).
+    if (user && pathname === "/login" && !searchParams.has("error")) {
+      return redirectWithCookies(request, "/home", supabaseResponse);
+    }
+    // Sin sesión en el panel: a /login, y después de entrar se vuelve a donde iba
+    // (p. ej. la reserva que abrió una notificación).
+    if (!user && PANEL_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
+      return redirectWithCookies(request, `/login?next=${encodeURIComponent(pathname + search)}`, supabaseResponse);
+    }
+    return supabaseResponse;
+  }
 
   if (!user) {
     const { error } = await supabase.auth.signInWithPassword({
@@ -57,10 +69,18 @@ export async function updateSession(request: NextRequest) {
   // Sin pantalla de login: / y /login llevan directamente al panel.
   const { pathname } = request.nextUrl;
   if (pathname === "/" || pathname === "/login") {
-    const redirect = NextResponse.redirect(new URL("/home", request.url));
-    supabaseResponse.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie));
-    return redirect;
+    return redirectWithCookies(request, "/home", supabaseResponse);
   }
 
   return supabaseResponse;
+}
+
+/** Páginas del panel que necesitan sesión. */
+const PANEL_PATHS = ["/home", "/reservations", "/settings"];
+
+/** Redirección que conserva las cookies de sesión recién refrescadas. */
+function redirectWithCookies(request: NextRequest, to: string, from: NextResponse) {
+  const redirect = NextResponse.redirect(new URL(to, request.url));
+  from.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie));
+  return redirect;
 }
